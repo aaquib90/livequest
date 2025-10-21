@@ -224,7 +224,7 @@ export default async function DashboardPage({
               size="lg"
               className="border-border/70 bg-background/60 px-6"
             >
-              <Link href="/matches">
+              <Link href="/dashboard/matches">
                 <Trophy className="mr-2 h-4 w-4" />
                 Using Matches
                 <ArrowUpRight className="ml-2 h-4 w-4" />
