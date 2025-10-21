@@ -1,0 +1,12 @@
+name = "liveblogo-cron"
+compatibility_date = "2025-10-21"
+
+[triggers]
+schedules = [
+  "*/5 * * * *"
+]
+
+[vars]
+BASE_URL = "https://<your-domain>"
+
+
