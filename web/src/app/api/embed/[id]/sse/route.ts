@@ -2,7 +2,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/serverClient';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export async function GET(
   _req: Request,

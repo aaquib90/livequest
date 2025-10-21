@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/serverClient";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {

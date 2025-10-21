@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 import { formatDiscordMessage, postToDiscord, type UpdateContent } from "@/lib/integrations/discord";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   try {

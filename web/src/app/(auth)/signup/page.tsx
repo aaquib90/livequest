@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/serverClient";
 
+export const runtime = "edge";
+
 async function signUpAction(formData: FormData) {
   "use server";
   const email = String(formData.get("email") || "");

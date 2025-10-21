@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 export async function POST(req: Request) {
   try {
     const { url } = await req.json().catch(() => ({ url: "" }));

@@ -4,7 +4,7 @@ import { fetchFixturesRangePaged, fetchFixturesByDatePaged } from '@/lib/footbal
 import { fetchFdMatchesByDate } from '@/lib/football/footballDataApi';
 import { TOP_LEAGUE_IDS, currentSeasonUtc } from '@/lib/football/config';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {

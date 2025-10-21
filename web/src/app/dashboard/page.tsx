@@ -25,6 +25,8 @@ import { createClient } from "@/lib/supabase/serverClient";
 import { CreateLiveblogDialog } from "./_components/create-liveblog-dialog";
 import { FolderInput } from "./_components/folder-input";
 
+export const runtime = "edge";
+
 type LiveblogStatus = "active" | "archived" | "completed" | "deleted";
 type LiveblogPrivacy = "public" | "unlisted" | "private";
 

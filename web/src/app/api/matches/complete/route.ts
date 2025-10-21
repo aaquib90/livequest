@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/adminClient';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 // Marks matches as completed (FT) when their scheduled date/time has passed by a buffer
 // and they are not already in a terminal status. Intended to be called via cron.

@@ -24,6 +24,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/serverClient";
 
+export const runtime = "edge";
+
 type LiveblogStatus = "active" | "archived" | "completed" | "deleted";
 
 type AccountPageSearchParams = {

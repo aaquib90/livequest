@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/serverClient';
 import * as Sentry from '@sentry/nextjs';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const revalidate = 5;
 
 export async function GET(
