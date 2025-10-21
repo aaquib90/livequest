@@ -13,7 +13,7 @@ import {
 
 export default function EmbedButton({ liveblogId }: { liveblogId: string }) {
   const [open, setOpen] = useState(false);
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "";
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://livequest.app";
   const iframe = `<iframe src="${base}/embed/${liveblogId}" width="100%" height="600" loading="lazy"></iframe>`;
   const script = `<div data-liveblog-id="${liveblogId}"></div>\n<script src="${base}/embed.js" async></script>`;
   return (
