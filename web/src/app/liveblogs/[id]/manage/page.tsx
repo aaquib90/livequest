@@ -17,6 +17,8 @@ import { createClient } from "@/lib/supabase/serverClient";
 
 import ManageTabs from "./ui/ManageTabs";
 
+export const runtime = "edge";
+
 export default async function ManageLiveblog({
   params,
 }: {

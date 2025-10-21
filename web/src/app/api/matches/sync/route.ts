@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/adminClient';
 import { fetchFixtures } from '@/lib/football/api';
 import { TOP_LEAGUE_IDS, currentSeasonUtc } from '@/lib/football/config';
 
+export const runtime = 'edge';
+
 export async function POST(req: NextRequest) {
   const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
