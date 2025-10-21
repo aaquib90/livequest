@@ -34,6 +34,13 @@ export default async function SignUpPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    return redirect("/dashboard");
+  }
   const sp = await searchParams;
   const error = sp?.error;
   return (
