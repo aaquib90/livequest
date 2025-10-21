@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormSubmitButton } from "@/components/auth/form-submit-button";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
@@ -26,7 +26,7 @@ async function signUpAction(formData: FormData) {
   if (error) {
     return redirect(`/signup?error=${encodeURIComponent(error.message)}`);
   }
-  return redirect("/dashboard");
+  return redirect(`/signup/verify?email=${encodeURIComponent(email)}`);
 }
 
 export default async function SignUpPage({
@@ -86,10 +86,15 @@ export default async function SignUpPage({
                   placeholder="Create a strong password"
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg">
+              <FormSubmitButton
+                type="submit"
+                className="w-full"
+                size="lg"
+                pendingLabel="Creating your studio..."
+              >
                 Sign up
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              </FormSubmitButton>
             </form>
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}

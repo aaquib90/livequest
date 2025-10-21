@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LockKeyhole } from "lucide-react";
+import { ArrowRight, LockKeyhole, MailOpen } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormSubmitButton } from "@/components/auth/form-submit-button";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
@@ -24,6 +24,12 @@ async function signInAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
+    const message = error.message?.toLowerCase() ?? "";
+    if (message.includes("confirm")) {
+      return redirect(
+        `/signin?status=pending-verification&email=${encodeURIComponent(email)}`
+      );
+    }
     return redirect(`/signin?error=${encodeURIComponent(error.message)}`);
   }
   return redirect("/dashboard");
@@ -32,10 +38,18 @@ async function signInAction(formData: FormData) {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; status?: string; email?: string }>;
 }) {
   const sp = await searchParams;
   const error = sp?.error;
+  const status = sp?.status;
+  const email = sp?.email;
+  const pendingVerification = status === "pending-verification";
+  const inbox = email ? (
+    <span className="font-medium text-foreground">{email}</span>
+  ) : (
+    "the inbox you used to sign up"
+  );
   return (
     <div className="relative flex min-h-[80vh] items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(250,250,250,0.04),_transparent_55%)]" />
@@ -52,7 +66,21 @@ export default async function SignInPage({
                 Welcome back. Enter your credentials to continue crafting live coverage.
               </CardDescription>
             </div>
-            {error ? (
+            {pendingVerification ? (
+              <div
+                className="flex items-start gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-left text-sm text-foreground"
+                role="status"
+              >
+                <MailOpen className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Confirm your email to continue</p>
+                  <p className="text-muted-foreground">
+                    We emailed a welcome link to {inbox}. Open it to activate your account and
+                    then return to sign in.
+                  </p>
+                </div>
+              </div>
+            ) : error ? (
               <div
                 className="flex items-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground/90"
                 role="alert"
@@ -85,10 +113,10 @@ export default async function SignInPage({
                   placeholder="••••••••"
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg">
+              <FormSubmitButton type="submit" className="w-full" size="lg" pendingLabel="Signing in...">
                 Sign in
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              </FormSubmitButton>
             </form>
             <p className="text-sm text-muted-foreground">
               No account yet?{" "}
