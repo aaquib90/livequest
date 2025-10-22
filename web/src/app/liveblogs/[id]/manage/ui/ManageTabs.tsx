@@ -21,12 +21,20 @@ export default function ManageTabs({
   initialUpdates,
   analytics,
   template,
+  homeTeamSlug,
+  homeTeamName,
+  awayTeamSlug,
+  awayTeamName,
 }: {
   liveblogId: string;
   orderPref: "newest" | "oldest";
   initialUpdates: Update[];
   analytics: { uniques24h: number; starts24h: number; totalStarts: number };
   template?: string | null;
+  homeTeamSlug?: string;
+  homeTeamName?: string;
+  awayTeamSlug?: string;
+  awayTeamName?: string;
 }) {
   const [tab, setTab] = useState<"coverage" | "planner" | "analytics">("coverage");
   return (
@@ -40,7 +48,15 @@ export default function ManageTabs({
       {tab === "coverage" ? (
         <div className="space-y-6">
           <div id="composer">
-            <Composer liveblogId={liveblogId} template={template} layout="full" />
+            <Composer
+              liveblogId={liveblogId}
+              template={template}
+              layout="full"
+              homeTeamSlug={homeTeamSlug}
+              homeTeamName={homeTeamName}
+              awayTeamSlug={awayTeamSlug}
+              awayTeamName={awayTeamName}
+            />
           </div>
 
           <Card className="border-border/70 bg-background/60">
@@ -57,6 +73,10 @@ export default function ManageTabs({
                 liveblogId={liveblogId}
                 order={orderPref}
                 template={template}
+                homeTeamName={homeTeamName}
+                homeTeamSlug={homeTeamSlug}
+                awayTeamName={awayTeamName}
+                awayTeamSlug={awayTeamSlug}
               />
             </CardContent>
           </Card>

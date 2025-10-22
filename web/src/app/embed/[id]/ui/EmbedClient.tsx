@@ -6,6 +6,7 @@ import {
   FootballEventBadge,
   FootballEventBanner,
 } from "@/components/football/FootballEventBadge";
+import { FootballEventDetails } from "@/components/football/FootballEventDetails";
 import type { FootballEventKey } from "@/lib/football/events";
 import { createClient } from "@/lib/supabase/browserClient";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ type TextContent = {
   text: string;
   title?: string;
   event?: FootballEventKey | "" | null;
+  event_meta?: Record<string, unknown> | null;
   image?: { path: string; width?: number; height?: number };
 };
 type ImageContent = {
@@ -47,11 +49,19 @@ export default function EmbedClient({
   liveblogId,
   order = "newest",
   template,
+  homeTeamName,
+  homeTeamSlug,
+  awayTeamName,
+  awayTeamSlug,
 }: {
   initialUpdates: Update[];
   liveblogId: string;
   order?: "newest" | "oldest";
   template?: string | null;
+  homeTeamName?: string;
+  homeTeamSlug?: string;
+  awayTeamName?: string;
+  awayTeamSlug?: string;
 }) {
   const supabase = createClient();
   const [updates, setUpdates] = useState<Update[]>(initialUpdates);
@@ -124,28 +134,56 @@ export default function EmbedClient({
         <article
           key={u.id}
           className={cn(
-            "rounded-3xl border border-border/60 bg-background/80 p-5 shadow-sm transition hover:border-border",
-            isNew && "will-change-transform animate-[lb-slide-fade-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]"
+            "group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-5 shadow-[0_24px_60px_-42px_rgba(7,8,14,0.92)] transition-all duration-500 hover:border-border/40",
+            u.pinned &&
+              "border-amber-400/60 bg-gradient-to-br from-amber-500/12 via-background/75 to-background/90",
+            isNew &&
+              "will-change-transform animate-[lb-slide-fade-in_460ms_cubic-bezier(0.22,1,0.36,1)_both]"
           )}
         >
-          {u.pinned || eventKey ? (
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-              {u.pinned ? <span>Pinned</span> : null}
-              {eventKey ? <FootballEventBadge event={eventKey} size="sm" /> : null}
-            </div>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_100%_0%,rgba(129,140,248,0.15),transparent)] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
+          {u.pinned ? (
+            <span className="pointer-events-none absolute -top-10 right-6 h-20 w-20 rounded-full bg-amber-400/15 blur-3xl" />
           ) : null}
-          {eventKey ? (
-            <FootballEventBanner
-              event={eventKey}
-              subtle
-              isNew={isNew}
-              className="mb-3 border border-white/10"
-            />
-          ) : null}
-          <RenderContent content={u.content} isNew={isNew} />
-          <p className="mt-3 text-xs text-muted-foreground">
-            {u.published_at ? formatDate(u.published_at) : ""}
-          </p>
+          <div className="relative z-[1] space-y-4">
+            {u.pinned || eventKey ? (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                {u.pinned ? (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/10 px-3 py-1 text-amber-200">
+                    Pinned
+                  </span>
+                ) : null}
+                {eventKey ? (
+                  <FootballEventBadge event={eventKey} size="sm" />
+                ) : null}
+              </div>
+            ) : null}
+            {eventKey ? (
+              <FootballEventBanner
+                event={eventKey}
+                subtle
+                isNew={isNew}
+                className="border border-white/10"
+              />
+            ) : null}
+            {eventKey && textContent?.event_meta ? (
+              <FootballEventDetails
+                event={eventKey}
+                meta={textContent.event_meta}
+                isNew={isNew}
+                context={{
+                  homeTeamName,
+                  homeTeamSlug,
+                  awayTeamName,
+                  awayTeamSlug,
+                }}
+              />
+            ) : null}
+            <RenderContent content={u.content} isNew={isNew} />
+            <p className="pt-1 text-xs text-muted-foreground">
+              {u.published_at ? formatDate(u.published_at) : ""}
+            </p>
+          </div>
         </article>
       );
       })}
