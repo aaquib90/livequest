@@ -130,6 +130,13 @@ export default async function ManageLiveblog({
     .select("id", { count: "exact", head: true })
     .eq("liveblog_id", liveblog.id)
     .eq("event", "start");
+  const { data: concurrentData } = await supabase.rpc("count_concurrent_viewers", {
+    p_liveblog_id: liveblog.id,
+  });
+  const concurrentNow =
+    typeof concurrentData === "number"
+      ? concurrentData
+      : (concurrentData as number | null) ?? 0;
 
   const privacyLabel =
     liveblog.privacy.charAt(0).toUpperCase() + liveblog.privacy.slice(1);
@@ -178,7 +185,12 @@ export default async function ManageLiveblog({
         liveblogId={liveblog.id}
         orderPref={orderPref}
         initialUpdates={updates || []}
-        analytics={{ uniques24h: uniquesCount || 0, starts24h: startsCount || 0, totalStarts: totalStartsCount || 0 }}
+        analytics={{
+          uniques24h: uniquesCount || 0,
+          starts24h: startsCount || 0,
+          totalStarts: totalStartsCount || 0,
+          concurrentNow: concurrentNow || 0,
+        }}
         template={template}
         homeTeamSlug={homeTeamSlug || undefined}
         homeTeamName={homeTeamName || undefined}

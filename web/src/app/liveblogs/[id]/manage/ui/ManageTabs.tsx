@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Activity, BarChart3, Radio, Clock, Send, Trash2 } from "lucide-react";
+import { Activity, BarChart3, Radio, Users, Clock, Send, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,7 @@ export default function ManageTabs({
   liveblogId: string;
   orderPref: "newest" | "oldest";
   initialUpdates: Update[];
-  analytics: { uniques24h: number; starts24h: number; totalStarts: number };
+  analytics: { uniques24h: number; starts24h: number; totalStarts: number; concurrentNow: number };
   template?: string | null;
   homeTeamSlug?: string;
   homeTeamName?: string;
@@ -37,12 +37,53 @@ export default function ManageTabs({
   awayTeamName?: string;
 }) {
   const [tab, setTab] = useState<"coverage" | "planner" | "analytics">("coverage");
+  const [stats, setStats] = useState(analytics);
+
+  useEffect(() => {
+    setStats(analytics);
+  }, [analytics]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refresh() {
+      try {
+        const res = await fetch(`/api/liveblogs/${liveblogId}/analytics`, { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        setStats({
+          uniques24h: Number(json.uniques24h) || 0,
+          starts24h: Number(json.starts24h) || 0,
+          totalStarts: Number(json.totalStarts) || 0,
+          concurrentNow: Number(json.concurrentNow) || 0,
+        });
+      } catch {
+        // ignore network errors
+      }
+    }
+
+    refresh();
+    const id = window.setInterval(refresh, 20000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [liveblogId]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <TabButton active={tab === "coverage"} onClick={() => setTab("coverage")}>Coverage</TabButton>
         <TabButton active={tab === "planner"} onClick={() => setTab("planner")}>Planner</TabButton>
         <TabButton active={tab === "analytics"} onClick={() => setTab("analytics")}>Analytics</TabButton>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-3 py-1">
+          <Radio className="h-3.5 w-3.5 text-emerald-400" />
+          Live viewers
+          <span className="text-sm font-semibold text-foreground">{stats.concurrentNow}</span>
+        </span>
       </div>
 
       {tab === "coverage" ? (
@@ -103,10 +144,11 @@ export default function ManageTabs({
               <CardDescription>Performance from yesterday plus all-time session starts.</CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            <AnalyticsStat icon={<Radio className="h-4 w-4" />} label="Uniques (24h)" value={analytics.uniques24h} />
-            <AnalyticsStat icon={<Activity className="h-4 w-4" />} label="Starts (24h)" value={analytics.starts24h} />
-            <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={analytics.totalStarts} />
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <AnalyticsStat icon={<Radio className="h-4 w-4" />} label="Live viewers" value={stats.concurrentNow} />
+            <AnalyticsStat icon={<Users className="h-4 w-4" />} label="Uniques (24h)" value={stats.uniques24h} />
+            <AnalyticsStat icon={<Activity className="h-4 w-4" />} label="Starts (24h)" value={stats.starts24h} />
+            <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={stats.totalStarts} />
           </CardContent>
         </Card>
       )}

@@ -1,6 +1,6 @@
 "use client";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
 
 import {
@@ -73,6 +73,8 @@ export default function EmbedClient({
   const [pushEnabled, setPushEnabled] = useState<boolean>(false);
   const [pushBusy, setPushBusy] = useState<boolean>(false);
   const [deviceId, setDeviceId] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string>("");
+  const [analyticsMode, setAnalyticsMode] = useState<"pending" | "iframe" | "page">("pending");
   const [reactionCounts, setReactionCounts] = useState<Record<string, { smile: number; heart: number; thumbs_up: number }>>({});
   const [reactionActive, setReactionActive] = useState<Record<string, { smile: boolean; heart: boolean; thumbs_up: boolean }>>({});
 
@@ -88,6 +90,32 @@ export default function EmbedClient({
       setDeviceId(id);
     } catch {}
 
+    // Ensure a stable per-session id (scoped per liveblog)
+    try {
+      if (typeof window !== "undefined") {
+        const key = `lb_sid_${liveblogId}`;
+        let sid = window.localStorage.getItem(key) || "";
+        if (!sid) {
+          sid = Math.random().toString(36).slice(2);
+          window.localStorage.setItem(key, sid);
+        }
+        setSessionId(sid);
+      }
+    } catch {}
+
+    // Detect mode (iframe vs standalone)
+    if (typeof window !== "undefined") {
+      let mode: "iframe" | "page" = "page";
+      try {
+        if (window.top && window.top !== window.self) mode = "iframe";
+      } catch {
+        mode = "iframe";
+      }
+      setAnalyticsMode(mode);
+    } else {
+      setAnalyticsMode("pending");
+    }
+
     // Register service worker if supported
     const supported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
     setPushSupported(supported);
@@ -102,6 +130,42 @@ export default function EmbedClient({
         .catch(() => {});
     }
   }, [liveblogId]);
+
+  const trackEvent = useCallback(
+    async (event: string, metadata?: Record<string, unknown>) => {
+      if (!sessionId || analyticsMode === "pending") return;
+      try {
+        await fetch(`/api/embed/${liveblogId}/track`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            event,
+            mode: analyticsMode,
+            metadata,
+          }),
+        });
+      } catch {}
+    },
+    [analyticsMode, liveblogId, sessionId],
+  );
+
+  useEffect(() => {
+    if (!sessionId || analyticsMode === "pending") return;
+    trackEvent("start");
+    const interval = window.setInterval(() => trackEvent("ping"), 15000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        trackEvent("ping");
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      trackEvent("stop");
+    };
+  }, [analyticsMode, sessionId, trackEvent]);
 
   async function subscribePush() {
     try {
@@ -122,8 +186,7 @@ export default function EmbedClient({
         body: JSON.stringify({ subscription }),
       });
       setPushEnabled(true);
-      // Best-effort track
-      try { fetch(`/api/embed/${liveblogId}/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "push_subscribed" }) }); } catch {}
+      trackEvent("push_subscribed");
     } finally {
       setPushBusy(false);
     }
@@ -144,7 +207,7 @@ export default function EmbedClient({
         await sub.unsubscribe();
       }
       setPushEnabled(false);
-      try { fetch(`/api/embed/${liveblogId}/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "push_unsubscribed" }) }); } catch {}
+      trackEvent("push_unsubscribed");
     } finally {
       setPushBusy(false);
   }
@@ -352,6 +415,7 @@ export default function EmbedClient({
                 setReactionCounts((prev) => ({ ...prev, [u.id]: nextCounts }));
                 setReactionActive((prev) => ({ ...prev, [u.id]: nextActive }));
               }}
+              onTrack={trackEvent}
             />
             <p className="pt-1 text-xs text-muted-foreground">
               {u.published_at ? formatDate(u.published_at) : ""}
@@ -482,6 +546,7 @@ function ReactionBar({
   counts,
   active,
   onChange,
+  onTrack,
 }: {
   liveblogId: string;
   updateId: string;
@@ -492,6 +557,7 @@ function ReactionBar({
     nextCounts: { smile: number; heart: number; thumbs_up: number },
     nextActive: { smile: boolean; heart: boolean; thumbs_up: boolean }
   ) => void;
+  onTrack?: (event: string, metadata?: Record<string, unknown>) => void;
 }) {
   async function toggle(type: ReactionType) {
     if (!deviceId) return;
@@ -499,25 +565,23 @@ function ReactionBar({
     const optimisticCounts = { ...counts, [type]: Math.max(0, counts[type] + (currentlyActive ? -1 : 1)) } as typeof counts;
     const optimisticActive = { ...active, [type]: !currentlyActive } as typeof active;
     onChange(optimisticCounts, optimisticActive);
+    let tracked = false;
     try {
       const res = await fetch(`/api/embed/${liveblogId}/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updateId, type, deviceId }),
       });
+       if (res.ok) tracked = true;
       const json = await res.json().catch(() => null);
       if (json && json.counts && json.active) {
         onChange(json.counts, json.active);
       }
     } catch {}
-    // Best-effort tracking
-    try {
-      fetch(`/api/embed/${liveblogId}/track`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event: active[type] ? "reaction_removed" : "reaction_added", metadata: { updateId, type } }),
-      });
-    } catch {}
+    if (tracked) {
+      const analyticsEvent = currentlyActive ? "reaction_removed" : "reaction_added";
+      onTrack?.(analyticsEvent, { updateId, type });
+    }
   }
 
   return (
