@@ -132,8 +132,9 @@ export default function EmbedClient({
       try { fetch(`/api/embed/${liveblogId}/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "push_unsubscribed" }) }); } catch {}
     } finally {
       setPushBusy(false);
-    }
   }
+  }
+  useEffect(() => {
     const channel = supabase
       .channel(`updates:${liveblogId}`)
       .on(
