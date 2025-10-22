@@ -38,9 +38,19 @@ export default function ManageTabs({
 }) {
   const [tab, setTab] = useState<"coverage" | "planner" | "analytics">("coverage");
   const [stats, setStats] = useState(analytics);
+  const [sponsors, setSponsors] = useState<Array<{
+    id: string;
+    name: string;
+    status: string;
+    starts_at: string | null;
+    ends_at: string | null;
+    impressions: number;
+    clicks: number;
+  }>>([]);
 
   useEffect(() => {
     setStats(analytics);
+    setSponsors([]);
   }, [analytics]);
 
   useEffect(() => {
@@ -48,16 +58,35 @@ export default function ManageTabs({
 
     async function refresh() {
       try {
-        const res = await fetch(`/api/liveblogs/${liveblogId}/analytics`, { cache: "no-store" });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (cancelled) return;
-        setStats({
-          uniques24h: Number(json.uniques24h) || 0,
-          starts24h: Number(json.starts24h) || 0,
-          totalStarts: Number(json.totalStarts) || 0,
-          concurrentNow: Number(json.concurrentNow) || 0,
-        });
+        const [analyticsRes, sponsorsRes] = await Promise.all([
+          fetch(`/api/liveblogs/${liveblogId}/analytics`, { cache: "no-store" }),
+          fetch(`/api/liveblogs/${liveblogId}/sponsors`, { cache: "no-store" }),
+        ]);
+        if (!cancelled && analyticsRes.ok) {
+          const json = await analyticsRes.json();
+          setStats({
+            uniques24h: Number(json.uniques24h) || 0,
+            starts24h: Number(json.starts24h) || 0,
+            totalStarts: Number(json.totalStarts) || 0,
+            concurrentNow: Number(json.concurrentNow) || 0,
+          });
+        }
+        if (!cancelled && sponsorsRes.ok) {
+          const json = await sponsorsRes.json();
+          if (json && Array.isArray(json.slots)) {
+            setSponsors(
+              (json.slots as any[]).map((slot) => ({
+                id: String(slot.id),
+                name: String(slot.name ?? ""),
+                status: String(slot.status ?? "scheduled"),
+                starts_at: slot.starts_at ?? null,
+                ends_at: slot.ends_at ?? null,
+                impressions: Number(slot.impressions ?? 0),
+                clicks: Number(slot.clicks ?? 0),
+              })),
+            );
+          }
+        }
       } catch {
         // ignore network errors
       }
@@ -136,21 +165,56 @@ export default function ManageTabs({
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-border/70 bg-background/60">
-          <CardHeader className="space-y-3">
-            <Badge variant="outline" className="w-fit">Analytics</Badge>
-            <div>
-              <CardTitle className="text-lg">Audience pulse</CardTitle>
-              <CardDescription>Performance from yesterday plus all-time session starts.</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <AnalyticsStat icon={<Radio className="h-4 w-4" />} label="Live viewers" value={stats.concurrentNow} />
-            <AnalyticsStat icon={<Users className="h-4 w-4" />} label="Uniques (24h)" value={stats.uniques24h} />
-            <AnalyticsStat icon={<Activity className="h-4 w-4" />} label="Starts (24h)" value={stats.starts24h} />
-            <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={stats.totalStarts} />
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card className="border-border/70 bg-background/60">
+            <CardHeader className="space-y-3">
+              <Badge variant="outline" className="w-fit">Analytics</Badge>
+              <div>
+                <CardTitle className="text-lg">Audience pulse</CardTitle>
+                <CardDescription>Performance from yesterday plus all-time session starts.</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <AnalyticsStat icon={<Radio className="h-4 w-4" />} label="Live viewers" value={stats.concurrentNow} />
+              <AnalyticsStat icon={<Users className="h-4 w-4" />} label="Uniques (24h)" value={stats.uniques24h} />
+              <AnalyticsStat icon={<Activity className="h-4 w-4" />} label="Starts (24h)" value={stats.starts24h} />
+              <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={stats.totalStarts} />
+            </CardContent>
+          </Card>
+          <Card className="border-border/70 bg-background/60">
+            <CardHeader className="space-y-3">
+              <Badge variant="outline" className="w-fit">Sponsors</Badge>
+              <div>
+                <CardTitle className="text-lg">Active slots</CardTitle>
+                <CardDescription>Track impressions and clicks for each sponsored placement.</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {sponsors.length ? (
+                sponsors.map((slot) => (
+                  <div key={slot.id} className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{slot.name}</p>
+                        <p className="text-xs text-muted-foreground">{slot.status}</p>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <p>Impressions: <span className="font-semibold text-foreground">{slot.impressions}</span></p>
+                        <p>Clicks: <span className="font-semibold text-foreground">{slot.clicks}</span></p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {slot.starts_at ? `Starts ${new Date(slot.starts_at).toLocaleString()}` : "Starts immediately"}
+                      {slot.ends_at ? ` · Ends ${new Date(slot.ends_at).toLocaleString()}` : ""}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No sponsor slots yet. Create one from the planner to highlight partners.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
