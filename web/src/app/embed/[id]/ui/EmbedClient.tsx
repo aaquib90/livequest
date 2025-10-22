@@ -226,6 +226,8 @@ export default function EmbedClient({
         (payload: RealtimePostgresChangesPayload<Update>) => {
           if (payload.eventType === "INSERT" && payload.new) {
             const inserted = payload.new;
+            const status = (inserted as any)?.status;
+            if (status && status !== "published") return;
             setUpdates((prev) => [inserted, ...prev]);
             setNewIds((prev) => {
               const next = new Set(prev);
