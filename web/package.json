@@ -11,6 +11,8 @@
     "gen:epl:players": "node ./src/scripts/generate-epl-players.cjs"
   },
   "dependencies": {
+    "web-push": "^3.6.3",
+    "heic2any": "^0.0.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "@sentry/nextjs": "^10.20.0",

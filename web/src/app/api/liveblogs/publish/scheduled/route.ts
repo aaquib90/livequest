@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 import { formatDiscordMessage, postToDiscord, type UpdateContent } from "@/lib/integrations/discord";
+import { sendPushToLiveblog } from "@/lib/notifications/push";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,6 +53,19 @@ export async function POST(req: NextRequest) {
         const payload = formatDiscordMessage(content, { publicImageUrl });
         if (payload) await postToDiscord(webhook, payload);
       }
+
+      // Send push notification
+      try {
+        const url = `${process.env.NEXT_PUBLIC_SITE_URL || ''}/embed/${row.liveblog_id}`;
+        const text = (row.content as any)?.title || (typeof (row.content as any)?.text === 'string' ? (row.content as any).text : 'New update');
+        await sendPushToLiveblog(row.liveblog_id, {
+          title: 'New live update',
+          body: String(text).slice(0, 140),
+          url,
+          tag: `lb-${row.liveblog_id}`,
+          icon: '/favicon.ico',
+        });
+      } catch {}
     }
 
     return NextResponse.json({ ok: true, published: publishedIds.length });

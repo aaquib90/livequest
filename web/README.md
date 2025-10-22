@@ -1,3 +1,21 @@
+## Guest push notifications for embeds
+
+Configure VAPID keys and service worker to enable browser push notifications for guests on embed pages.
+
+1. Generate VAPID keys (one-time):
+   - Use any web-push tool or library to generate a VAPID keypair.
+2. Set environment variables:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (Base64 URL-encoded public key)
+   - `VAPID_PRIVATE_KEY`
+   - `VAPID_SUBJECT` (e.g., `mailto:admin@yourdomain.com`)
+   - `NEXT_PUBLIC_SITE_URL` (e.g., `https://livequest.app`)
+3. Service worker is served at `/push-sw.js`.
+4. Bell UI appears in `embed/[id]` page for opt-in/out.
+5. Subscriptions are stored in `push_subscriptions`.
+6. On publish, pushes are sent automatically; manual trigger endpoint: `POST /api/liveblogs/{id}/broadcast/notify`.
+
+Browser caveats: Push requires HTTPS, user gesture for permission, and varies by browser/OS.
+
 # Liveblog Studio
 
 Liveblog Studio helps newsrooms and creators cover live events with a fast editor, polished embeds, and real-time analytics. It is built with Next.js App Router, Supabase, and Tailwind CSS.
