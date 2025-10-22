@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 import { formatDiscordMessage, postToDiscord, type UpdateContent } from "@/lib/integrations/discord";
+import { sendPushToLiveblog } from "@/lib/notifications/push";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,15 +54,34 @@ export async function POST(req: NextRequest) {
         if (payload) await postToDiscord(webhook, payload);
       }
 
-      // Forward push to dispatcher if configured
+      // Forward push notification
       try {
-        const dispatcher = process.env.PUSH_DISPATCH_URL || '';
+        const site = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+        const text = (row.content as any)?.title || (typeof (row.content as any)?.text === "string" ? (row.content as any).text : "New update");
+        const payload = {
+          title: "New live update",
+          body: String(text).slice(0, 140),
+          url: site ? `${site}/embed/${row.liveblog_id}` : "",
+          tag: `lb-${row.liveblog_id}`,
+          icon: "/favicon.ico",
+          badge: "/favicon.ico",
+        };
+        if (payload.url) {
+          await sendPushToLiveblog(row.liveblog_id, payload);
+        }
+
+        const dispatcher = process.env.PUSH_DISPATCH_URL || "";
         if (dispatcher) {
-          const url = `${process.env.NEXT_PUBLIC_SITE_URL || ''}/embed/${row.liveblog_id}`;
-          const text = (row.content as any)?.title || (typeof (row.content as any)?.text === 'string' ? (row.content as any).text : 'New update');
-          const payload = { title: 'New live update', body: String(text).slice(0, 140), url, tag: `lb-${row.liveblog_id}`, icon: '/favicon.ico' };
-          const res = await fetch(new URL(`/notify/${row.liveblog_id}`, dispatcher).toString(), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(process.env.PUSH_DISPATCH_TOKEN ? { Authorization: `Bearer ${process.env.PUSH_DISPATCH_TOKEN}` } : {}) }, body: JSON.stringify({ payload }) });
-          // ignore res
+          const res = await fetch(new URL(`/notify/${row.liveblog_id}`, dispatcher).toString(), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(process.env.PUSH_DISPATCH_TOKEN ? { Authorization: `Bearer ${process.env.PUSH_DISPATCH_TOKEN}` } : {}),
+            },
+            body: JSON.stringify({ payload }),
+          });
+          // best-effort: ignore res
+          void res;
         }
       } catch {}
     }
@@ -71,5 +91,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
-
-

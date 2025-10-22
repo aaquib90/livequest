@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/serverClient';
+import { sendPushToLiveblog } from '@/lib/notifications/push';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -21,13 +22,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!lb || lb.owner_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const payload = (body?.payload || null) as { title?: string; body?: string; url: string; tag?: string; icon?: string } | null;
+    const payload = (body?.payload || null) as { title?: string; body?: string; url: string; tag?: string; icon?: string; badge?: string } | null;
     if (!payload || typeof payload.url !== 'string') {
       return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
     }
+
+    let delivered = false;
+    let deliveryError: string | null = null;
+    try {
+      await sendPushToLiveblog(liveblogId, {
+        title: payload.title,
+        body: payload.body,
+        url: payload.url,
+        tag: payload.tag,
+        icon: payload.icon,
+        badge: payload.badge,
+      });
+      delivered = true;
+    } catch (err: any) {
+      deliveryError = err?.message || 'push_failed';
+    }
+
     // Forward to dispatcher (Cloudflare Worker or external service) if configured
     const dispatcherUrl = process.env.PUSH_DISPATCH_URL || '';
     const dispatcherToken = process.env.PUSH_DISPATCH_TOKEN || '';
+    let forwarded: boolean | null = null;
     if (dispatcherUrl) {
       try {
         const url = new URL(`/notify/${liveblogId}`, dispatcherUrl).toString();
@@ -39,16 +58,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           },
           body: JSON.stringify({ payload }),
         });
-        return NextResponse.json({ ok: res.ok }, { status: 200 });
+        forwarded = res.ok;
       } catch {
-        return NextResponse.json({ ok: false }, { status: 200 });
+        forwarded = false;
       }
     }
-    // No dispatcher configured; accept but not delivered
-    return NextResponse.json({ ok: false, dispatched: false }, { status: 200 });
+
+    if (delivered || forwarded) {
+      return NextResponse.json({ ok: true, delivered, forwarded }, { status: 200 });
+    }
+
+    return NextResponse.json(
+      { ok: false, delivered, forwarded, error: deliveryError ?? (forwarded === false ? 'dispatcher_failed' : 'not_configured') },
+      { status: 500 },
+    );
   } catch {
     return NextResponse.json({ error: 'server_error' }, { status: 500 });
   }
 }
-
-
