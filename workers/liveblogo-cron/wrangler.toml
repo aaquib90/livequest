@@ -1,6 +1,7 @@
 name = "liveblogo-cron"
 main = "src/index.ts"
 compatibility_date = "2025-10-21"
+compatibility_flags = ["nodejs_compat"]
 
 [triggers]
 crons = ["*/5 * * * *"]   # was schedules → use crons
@@ -9,3 +10,7 @@ crons = ["*/5 * * * *"]   # was schedules → use crons
 BASE_URL = "https://livequest.app"  # or your pages.dev URL
 # account_id = "b71bbb2d0c51760502e389fc9cb51964"  # if prompted
 SUPABASE_URL = "https://yjcoinrerbshwmkmlytx.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY = ""
+VAPID_PUBLIC_KEY = ""
+VAPID_PRIVATE_KEY = ""
+VAPID_SUBJECT = "mailto:admin@example.com"

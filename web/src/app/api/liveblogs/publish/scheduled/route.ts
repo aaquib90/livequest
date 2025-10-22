@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 import { formatDiscordMessage, postToDiscord, type UpdateContent } from "@/lib/integrations/discord";
-import { sendPushToLiveblog } from "@/lib/notifications/push";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,22 +65,17 @@ export async function POST(req: NextRequest) {
           icon: "/favicon.ico",
           badge: "/favicon.ico",
         };
-        if (payload.url) {
-          await sendPushToLiveblog(row.liveblog_id, payload);
-        }
-
         const dispatcher = process.env.PUSH_DISPATCH_URL || "";
-        if (dispatcher) {
-          const res = await fetch(new URL(`/notify/${row.liveblog_id}`, dispatcher).toString(), {
+        if (dispatcher && payload.url) {
+          await fetch(new URL(`/notify/${row.liveblog_id}`, dispatcher).toString(), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               ...(process.env.PUSH_DISPATCH_TOKEN ? { Authorization: `Bearer ${process.env.PUSH_DISPATCH_TOKEN}` } : {}),
             },
             body: JSON.stringify({ payload }),
-          });
-          // best-effort: ignore res
-          void res;
+            // Fire-and-forget; dispatcher handles delivery
+          }).catch(() => {});
         }
       } catch {}
     }
