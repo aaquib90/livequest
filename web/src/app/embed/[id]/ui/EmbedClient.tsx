@@ -1,6 +1,7 @@
 "use client";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
+import { Bell, BellOff } from "lucide-react";
 
 import {
   FootballEventBadge,
@@ -67,8 +68,72 @@ export default function EmbedClient({
   const [updates, setUpdates] = useState<Update[]>(initialUpdates);
   const isFootball = template === "football";
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [pushSupported, setPushSupported] = useState<boolean>(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(false);
+  const [pushBusy, setPushBusy] = useState<boolean>(false);
 
   useEffect(() => {
+    // Register service worker if supported
+    const supported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+    setPushSupported(supported);
+    if (supported) {
+      navigator.serviceWorker
+        .register("/push-sw.js")
+        .then(() => navigator.serviceWorker.ready)
+        .then(async (reg) => {
+          const sub = await reg.pushManager.getSubscription();
+          setPushEnabled(!!sub);
+        })
+        .catch(() => {});
+    }
+  }, [liveblogId]);
+
+  async function subscribePush() {
+    try {
+      setPushBusy(true);
+      if (!pushSupported) return;
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        setPushEnabled(false);
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const vapidKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string) || "";
+      const appServerKey = urlBase64ToUint8Array(vapidKey);
+      const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey });
+      await fetch(`/api/embed/${liveblogId}/push/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription }),
+      });
+      setPushEnabled(true);
+      // Best-effort track
+      try { fetch(`/api/embed/${liveblogId}/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "push_subscribed" }) }); } catch {}
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function unsubscribePush() {
+    try {
+      setPushBusy(true);
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await fetch(`/api/embed/${liveblogId}/push/unsubscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint }),
+        });
+        await sub.unsubscribe();
+      }
+      setPushEnabled(false);
+      try { fetch(`/api/embed/${liveblogId}/track`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "push_unsubscribed" }) }); } catch {}
+    } finally {
+      setPushBusy(false);
+    }
+  }
     const channel = supabase
       .channel(`updates:${liveblogId}`)
       .on(
@@ -123,6 +188,22 @@ export default function EmbedClient({
 
   return (
     <div className="space-y-4 pb-6">
+      <div className="flex items-center justify-end">
+        {pushSupported ? (
+          <button
+            type="button"
+            onClick={() => (pushEnabled ? unsubscribePush() : subscribePush())}
+            disabled={pushBusy}
+            aria-label={pushEnabled ? "Disable notifications" : "Enable notifications"}
+            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs text-muted-foreground hover:border-border/50"
+          >
+            {pushEnabled ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+            {pushEnabled ? "Notifications on" : "Notify me"}
+          </button>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">Notifications unavailable</span>
+        )}
+      </div>
       {sorted.map((u) => {
         const textContent = isTextContent(u.content) ? u.content : null;
         const eventKey =
@@ -195,6 +276,17 @@ export default function EmbedClient({
     </div>
   );
 }
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = typeof window !== 'undefined' ? window.atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 
 function isTextContent(content: UpdateContent): content is TextContent {
   return (

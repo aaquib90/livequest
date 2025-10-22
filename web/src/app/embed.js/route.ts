@@ -25,6 +25,7 @@ const script = () => `(()=>{
       iframe.style.width = '100%';
       iframe.style.border = '0';
       iframe.loading = 'lazy';
+      iframe.allow = 'notifications; clipboard-read; clipboard-write';
       shadow.appendChild(iframe);
       return;
     }
@@ -112,6 +113,7 @@ export async function GET() {
     headers: {
       'Content-Type': 'application/javascript; charset=utf-8',
       'Cache-Control': 'public, max-age=5, s-maxage=5, stale-while-revalidate=30',
+      'Permissions-Policy': 'notifications=(self)',
     },
   });
 }

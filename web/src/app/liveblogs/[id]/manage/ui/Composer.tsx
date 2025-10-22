@@ -23,6 +23,7 @@ import {
   footballEventOptions,
 } from "@/lib/football/events";
 import { matchTeam } from "@/lib/football/teams";
+import { normalizeImageFile } from "@/lib/images/convert";
 
 export default function Composer({
   liveblogId,
@@ -206,6 +207,17 @@ export default function Composer({
             keepalive: true,
           }).catch(() => {});
         } catch {}
+        // Fire-and-forget push notification
+        try {
+          const text = (payload as any)?.title || (payload as any)?.text || 'New update';
+          const site = process.env.NEXT_PUBLIC_SITE_URL || '';
+          fetch(`/api/liveblogs/${liveblogId}/broadcast/notify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ payload: { title: 'New live update', body: String(text).slice(0, 140), url: `${site}/embed/${liveblogId}`, tag: `lb-${liveblogId}` } }),
+            keepalive: true,
+          }).catch(() => {});
+        } catch {}
       }
     }
     setSending(false);
@@ -237,17 +249,19 @@ export default function Composer({
   async function uploadToStorage(file: File): Promise<{ key: string; width?: number; height?: number } | null> {
     if (!file || uploading) return;
     setUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    // Normalize file (convert HEIC→JPEG, keep GIFs as-is, others passthrough)
+    const normalized = await normalizeImageFile(file);
+    const ext = normalized.ext || (file.name.split(".").pop()?.toLowerCase() || "jpg");
     const key = `${liveblogId}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
-    const { width, height } = await readImageSize(file);
+    const { width, height } = await readImageSize(normalized.file);
     const { error: upErr } = await Sentry.startSpan(
       { op: "storage.upload", name: "Upload image" },
       async () => {
         return await supabase.storage
           .from("media")
-          .upload(key, file, { upsert: false, contentType: file.type });
+          .upload(key, normalized.file, { upsert: false, contentType: normalized.contentType || normalized.file.type });
       }
     );
     if (upErr) {
@@ -264,7 +278,7 @@ export default function Composer({
           liveblog_id: liveblogId,
           uploader_id,
           path: key,
-          type: file.type,
+          type: normalized.contentType || normalized.file.type,
           width,
           height,
         });
@@ -665,7 +679,7 @@ export default function Composer({
           >
             Quick publish image only
           </Button>
-          <span className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10 MB.</span>
+          <span className="text-xs text-muted-foreground">JPEG, PNG, GIF, HEIC up to 10 MB.</span>
         </div>
       </div>
     </div>
