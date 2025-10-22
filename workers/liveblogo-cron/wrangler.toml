@@ -8,4 +8,4 @@ crons = ["*/5 * * * *"]   # was schedules → use crons
 [vars]
 BASE_URL = "https://livequest.app"  # or your pages.dev URL
 # account_id = "b71bbb2d0c51760502e389fc9cb51964"  # if prompted
-
+SUPABASE_URL = "https://yjcoinrerbshwmkmlytx.supabase.co"

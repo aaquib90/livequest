@@ -1,7 +1,4 @@
-### Goalkeepers
-
 | Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | Raya | Arsenal | 40 | £5.7 |
 | Donnarumma | Man City | 21 | £5.7 |
 | Pickford | Everton | 32 | £5.5 |
@@ -45,9 +42,6 @@
 | Gauci | Aston Villa | 0 | £4.0 |
 | Marschall | Aston Villa | 0 | £4.0 |
 | Dennis | Bournemouth | 0 | £4.0 |
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | McKenna | Bournemouth | 0 | £4.0 |
 | Paulsen | Bournemouth | 0 | £4.0 |
 | Balcombe | Brentford | 0 | £4.0 |
@@ -91,11 +85,6 @@
 | Woodman | Liverpool | 0 | £3.9 |
 | Austin | Spurs | 0 | £3.9 |
 | Kinsky | Spurs | 0 | £3.9 |
-
-### Defenders
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | Gabriel | Arsenal | 59 | £6.4 |
 | Cucurella | Chelsea | 35 | £6.1 |
 | Saliba | Arsenal | 31 | £6.0 |
@@ -219,9 +208,6 @@
 | Patterson | Everton | 0 | £4.4 |
 | Castagne | Fulham | 9 | £4.4 |
 | Diop | Fulham | 3 | £4.4 |
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | J.Cuenca | Fulham | 7 | £4.4 |
 | Dalot | Man Utd | 20 | £4.4 |
 | Dorgu | Man Utd | 11 | £4.4 |
@@ -345,11 +331,6 @@
 | Pond | Wolves | 0 | £3.9 |
 | Masuaku | Sunderland | 1 | £3.9 |
 | Patterson | Aston Villa | 0 | £3.9 |
-
-### Midfielders
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | M.Salah | Liverpool | 36 | £14.4 |
 | Palmer | Chelsea | 11 | £10.3 |
 | Saka | Arsenal | 27 | £10.0 |
@@ -516,9 +497,6 @@
 | Kamada | Crystal Palace | 22 | £5.0 |
 | Wharton | Crystal Palace | 21 | £5.0 |
 | Garner | Everton | 36 | £5.0 |
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | Lukić | Fulham | 18 | £5.0 |
 | Nypan | Man City | 0 | £5.0 |
 | Willock | Newcastle | 4 | £5.0 |
@@ -684,11 +662,6 @@
 | Dowman | Arsenal | 5 | £4.4 |
 | D.Essugo | Chelsea | 0 | £4.3 |
 | Nyoni | Liverpool | 0 | £4.3 |
-
-### Forwards
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | Haaland | Man City | 83 | £14.7 |
 | Isak | Liverpool | 10 | £10.5 |
 | Gyökeres | Arsenal | 28 | £9.0 |
@@ -730,9 +703,6 @@
 | Brobbey | Sunderland | 3 | £5.5 |
 | Uche | Crystal Palace | 2 | £5.5 |
 | Enes Ünal | Bournemouth | 0 | £5.4 |
-
-| Player | Team | Points | Cost |
-| --- | --- | --- | --- |
 | Nketiah | Crystal Palace | 7 | £5.4 |
 | Muniz | Fulham | 15 | £5.4 |
 | Tzimas | Brighton | 7 | £5.3 |
@@ -774,53 +744,3 @@
 | Fraser | Wolves | 0 | £4.4 |
 | Marc Guiu | Chelsea | 4 | £4.3 |
 | Obi | Man Utd | 0 | £4.3 |
-
-- [![ea.png logo](https://resources.premierleague.com/premierleague25/partners/sponsors-light-theme/ea.png)\\
-Lead Partner](https://www.ea.com/en-gb/games/ea-sports-fc)
-- [![ADB](https://resources.premierleague.pulselive.com/photo-resources/2025/07/10/91ad5a6f-a580-4d8f-9359-9bc0ef76dc4c/ADB.png?width=90&height=60)\\
-Official Creativity Partner](https://www.premierleague.com/en/adobe-hub)
-- [![Barclays_Sponsor](https://resources.premierleague.pulselive.com/photo-resources/2023/01/26/11fe030b-2b2e-41ed-8f34-be72a8403ea0/Barclays_Sponsor.png?width=115&height=40)\\
-Official Bank](https://www.home.barclays/)
-- [![CocaCola_2526_Partner](https://resources.premierleague.pulselive.com/photo-resources/2025/05/31/6e1736ce-16e4-48d4-bd0d-669d2860837a/CocaCola_2526_Partner.png?width=115&height=40)\\
-Official Soft Drink](https://www.coca-cola.com/gb/en)
-- [![guinness.svg logo](https://resources.premierleague.pulselive.com/photo-resources/2024/06/12/d5dcc7f8-fbaf-4f12-883b-04620b08506f/Guinness_Partner.jpg?width=218&height=145)\\
-Official Beer](https://www.guinness.com/en-gb)
-- [![MSFT.png logo](https://resources.premierleague.com/premierleague25/partners/sponsors-light-theme/MSFT.png)\\
-Official Cloud & AI Partner](https://unlocked.microsoft.com/premier-league)
-- [![puma_partner.png logo](https://resources.premierleague.com/premierleague25/partners/sponsors-light-theme/puma_partner.png)\\
-Official Ball](https://puma.com/)
-- [![avery-dennison.svg logo](https://resources.premierleague.pulselive.com/photo-resources/2023/01/26/29bca766-5224-4166-b20b-3aac01e67fb9/AD_Sponsor.png?width=140&height=45)\\
-Official Licensee](https://sport.averydennison.com/)
-- [![f-m.png logo](https://resources.premierleague.com/premierleague25/partners/sponsors-light-theme/f-m.png)\\
-Official Licensee](https://www.footballmanager.com/)
-- [![rezzil logo](https://resources.premierleague.com/premierleague25/partners/sponsors-light-theme/rezzil)\\
-Official Licensee](https://rezzil.com/)
-- [![sorare logo](https://resources.premierleague.com/premierleague25/partners/sponsors-light-theme/sorare)\\
-Official Licensee](https://sorare.com/)
-- [![Topps_2526_Partner](https://resources.premierleague.pulselive.com/photo-resources/2025/05/31/5b1c886f-e3b5-461d-b764-054b0ccffcb9/Topps_2526_Partner.png?width=115&height=40)\\
-Official Licensee](https://uk.topps.com/)
-
-- [Premier League](https://www.premierleague.com/#)
-- [Fantasy](https://www.premierleague.com/en/fantasy)
-- [Matches](https://www.premierleague.com/en/matches)
-- [Table](https://www.premierleague.com/en/tables)
-- [Statistics](https://www.premierleague.com/en/stats)
-- [Latest News](https://www.premierleague.com/en/news)
-- [Latest Video](https://www.premierleague.com/en/video)
-- [Clubs](https://www.premierleague.com/en/clubs)
-- [Players](https://www.premierleague.com/en/players)
-
-© PREMIER LEAGUE 2025
-
-- [Modern Slavery Statement](https://www.premierleague.com/en/modern-slavery-statement)
-- [Equality, Diversity and Inclusion Standard](https://www.premierleague.com/en/equality-diversity-and-inclusion-standard)
-- [Terms of Use](https://www.premierleague.com/en/terms-and-conditions)
-- [Policies](https://www.premierleague.com/en/premier-league-policies)
-- [Cookie Policy](https://www.premierleague.com/en/cookie-policy)
-- [Contact Us](https://www.premierleague.com/en/about/contact-us)
-- [Appearance](https://www.premierleague.com/en/settings/appearance)
-- [Back To Top](https://www.premierleague.com/#)
-
-[Premier League Homepage](https://fantasy.premierleague.com/en)
-
-Twitter Widget Iframe

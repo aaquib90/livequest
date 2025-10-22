@@ -7,4 +7,5 @@ compatibility_flags = ["nodejs_compat"]
 NEXT_PUBLIC_SUPABASE_URL = "https://yjcoinrerbshwmkmlytx.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqY29pbnJlcmJzaHdta21seXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5Njg5NzAsImV4cCI6MjA3NjU0NDk3MH0.kt9chKvkzHWJVtzHaGc66fx4SdWm-JAq4kDstCbjrU0"
 NEXT_PUBLIC_VAPID_PUBLIC_KEY = "BF4hO2XKDvApg0TPM_lZ3s9lalmy9fS5ir2GB87S8Rd9af9JeYh2u3aY7xS2PbPP99X44vwxF0pQ2EaeLo72o1g"
+NEXT_PUBLIC_SITE_URL = "https://livequest.app"
 PUSH_DISPATCH_URL = "https://liveblogo-cron.aaquib-b71.workers.dev"

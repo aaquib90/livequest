@@ -11,6 +11,7 @@ import { FootballEventDetails } from "@/components/football/FootballEventDetails
 import type { FootballEventKey } from "@/lib/football/events";
 import { createClient } from "@/lib/supabase/browserClient";
 import { cn } from "@/lib/utils";
+type ReactionType = "smile" | "heart" | "thumbs_up";
 
 type TextContent = {
   type: "text";
@@ -71,8 +72,22 @@ export default function EmbedClient({
   const [pushSupported, setPushSupported] = useState<boolean>(false);
   const [pushEnabled, setPushEnabled] = useState<boolean>(false);
   const [pushBusy, setPushBusy] = useState<boolean>(false);
+  const [deviceId, setDeviceId] = useState<string>("");
+  const [reactionCounts, setReactionCounts] = useState<Record<string, { smile: number; heart: number; thumbs_up: number }>>({});
+  const [reactionActive, setReactionActive] = useState<Record<string, { smile: boolean; heart: boolean; thumbs_up: boolean }>>({});
 
   useEffect(() => {
+    // Ensure a stable per-device id (scoped to origin)
+    try {
+      const key = `lb_device_id`;
+      let id = typeof window !== "undefined" ? window.localStorage.getItem(key) || "" : "";
+      if (!id) {
+        id = crypto.randomUUID();
+        window.localStorage.setItem(key, id);
+      }
+      setDeviceId(id);
+    } catch {}
+
     // Register service worker if supported
     const supported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
     setPushSupported(supported);
@@ -178,6 +193,47 @@ export default function EmbedClient({
     };
   }, [liveblogId, supabase]);
 
+  // Hydrate reaction counts/active once we know deviceId and updates
+  useEffect(() => {
+    if (!deviceId || !updates.length) return;
+    const ids = updates.map((u) => u.id).join(",");
+    fetch(`/api/embed/${liveblogId}/reactions/summary?updateIds=${encodeURIComponent(ids)}&deviceId=${encodeURIComponent(deviceId)}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res.counts) setReactionCounts(res.counts);
+        if (res && res.active) setReactionActive(res.active);
+      })
+      .catch(() => {});
+  }, [deviceId, updates, liveblogId]);
+
+  // Realtime subscription for reactions
+  useEffect(() => {
+    const channel = supabase
+      .channel(`reactions:${liveblogId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "update_reactions", filter: `liveblog_id=eq.${liveblogId}` },
+        (payload: RealtimePostgresChangesPayload<any>) => {
+          const type = payload.eventType;
+          if (type !== "INSERT" && type !== "DELETE") return;
+          const row: any = type === "INSERT" ? payload.new : payload.old;
+          const updateId = row?.update_id as string | undefined;
+          const reaction = row?.reaction as ReactionType | undefined;
+          if (!updateId || !reaction) return;
+          const delta = type === "INSERT" ? 1 : -1;
+          setReactionCounts((prev) => {
+            const prevCounts = prev[updateId] || { smile: 0, heart: 0, thumbs_up: 0 };
+            const next = { ...prevCounts, [reaction]: Math.max(0, (prevCounts as any)[reaction] + delta) } as typeof prevCounts;
+            return { ...prev, [updateId]: next };
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [liveblogId, supabase]);
+
   const sorted = useMemo(() => {
     return [...updates].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -262,6 +318,17 @@ export default function EmbedClient({
               />
             ) : null}
             <RenderContent content={u.content} isNew={isNew} />
+            <ReactionBar
+              liveblogId={liveblogId}
+              updateId={u.id}
+              deviceId={deviceId}
+              counts={reactionCounts[u.id] || { smile: 0, heart: 0, thumbs_up: 0 }}
+              active={reactionActive[u.id] || { smile: false, heart: false, thumbs_up: false }}
+              onChange={(nextCounts, nextActive) => {
+                setReactionCounts((prev) => ({ ...prev, [u.id]: nextCounts }));
+                setReactionActive((prev) => ({ ...prev, [u.id]: nextActive }));
+              }}
+            />
             <p className="pt-1 text-xs text-muted-foreground">
               {u.published_at ? formatDate(u.published_at) : ""}
             </p>
@@ -381,6 +448,107 @@ function RenderContent({ content, isNew }: { content: UpdateContent; isNew?: boo
     <pre className="overflow-auto rounded-2xl border border-border/60 bg-zinc-950/80 p-4 text-xs text-muted-foreground">
       {JSON.stringify(content, null, 2)}
     </pre>
+  );
+}
+
+function ReactionBar({
+  liveblogId,
+  updateId,
+  deviceId,
+  counts,
+  active,
+  onChange,
+}: {
+  liveblogId: string;
+  updateId: string;
+  deviceId: string;
+  counts: { smile: number; heart: number; thumbs_up: number };
+  active: { smile: boolean; heart: boolean; thumbs_up: boolean };
+  onChange: (
+    nextCounts: { smile: number; heart: number; thumbs_up: number },
+    nextActive: { smile: boolean; heart: boolean; thumbs_up: boolean }
+  ) => void;
+}) {
+  async function toggle(type: ReactionType) {
+    if (!deviceId) return;
+    const currentlyActive = active[type];
+    const optimisticCounts = { ...counts, [type]: Math.max(0, counts[type] + (currentlyActive ? -1 : 1)) } as typeof counts;
+    const optimisticActive = { ...active, [type]: !currentlyActive } as typeof active;
+    onChange(optimisticCounts, optimisticActive);
+    try {
+      const res = await fetch(`/api/embed/${liveblogId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updateId, type, deviceId }),
+      });
+      const json = await res.json().catch(() => null);
+      if (json && json.counts && json.active) {
+        onChange(json.counts, json.active);
+      }
+    } catch {}
+    // Best-effort tracking
+    try {
+      fetch(`/api/embed/${liveblogId}/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: active[type] ? "reaction_removed" : "reaction_added", metadata: { updateId, type } }),
+      });
+    } catch {}
+  }
+
+  return (
+    <div className="mt-1.5 flex items-center gap-2 text-xs">
+      <ReactionButton
+        label="Smile"
+        emoji="😊"
+        count={counts.smile}
+        active={active.smile}
+        onClick={() => toggle("smile")}
+      />
+      <ReactionButton
+        label="Heart"
+        emoji="❤️"
+        count={counts.heart}
+        active={active.heart}
+        onClick={() => toggle("heart")}
+      />
+      <ReactionButton
+        label="Thumbs up"
+        emoji="👍"
+        count={counts.thumbs_up}
+        active={active.thumbs_up}
+        onClick={() => toggle("thumbs_up")}
+      />
+    </div>
+  );
+}
+
+function ReactionButton({
+  label,
+  emoji,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  emoji: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-1",
+        active ? "border-emerald-500/70 bg-emerald-500/10 text-emerald-300" : "border-border/60 bg-background/60 text-muted-foreground hover:border-border/40"
+      )}
+    >
+      <span className="text-sm leading-none">{emoji}</span>
+      <span className="min-w-[1ch] tabular-nums">{count}</span>
+    </button>
   );
 }
 
