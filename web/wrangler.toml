@@ -2,3 +2,7 @@ name = "liveblogo"
 compatibility_date = "2025-10-21"
 pages_build_output_dir = ".vercel/output/static"
 compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://yjcoinrerbshwmkmlytx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqY29pbnJlcmJzaHdta21seXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5Njg5NzAsImV4cCI6MjA3NjU0NDk3MH0.kt9chKvkzHWJVtzHaGc66fx4SdWm-JAq4kDstCbjrU0"
