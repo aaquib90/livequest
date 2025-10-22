@@ -16,6 +16,7 @@ import SettingsButton from "./ui/SettingsButton";
 import { createClient } from "@/lib/supabase/serverClient";
 
 import ManageTabs from "./ui/ManageTabs";
+import { matchTeam } from "@/lib/football/teams";
 
 export const runtime = "edge";
 
@@ -90,6 +91,28 @@ export default async function ManageLiveblog({
   const template = (liveblog.settings?.template as string | undefined) ?? null;
   const discordWebhookUrl = (liveblog.settings?.discord_webhook_url as string | undefined) ?? null;
 
+  // Resolve match teams if this is a football liveblog
+  let homeTeamName: string | null = null;
+  let awayTeamName: string | null = null;
+  let homeTeamSlug: string | null = null;
+  let awayTeamSlug: string | null = null;
+  const matchId = (liveblog.settings?.match_id as string | number | undefined) ?? undefined;
+  if (template === "football" && matchId) {
+    const { data: match } = await supabase
+      .from("matches")
+      .select("home_team_name,away_team_name")
+      .eq("id", matchId)
+      .single();
+    if (match) {
+      homeTeamName = match.home_team_name as string;
+      awayTeamName = match.away_team_name as string;
+      const home = matchTeam(homeTeamName);
+      const away = matchTeam(awayTeamName);
+      homeTeamSlug = home?.slug ?? null;
+      awayTeamSlug = away?.slug ?? null;
+    }
+  }
+
   // Analytics aggregates
   const { count: uniquesCount = 0 } = await supabase
     .from("viewer_pings")
@@ -157,6 +180,10 @@ export default async function ManageLiveblog({
         initialUpdates={updates || []}
         analytics={{ uniques24h: uniquesCount || 0, starts24h: startsCount || 0, totalStarts: totalStartsCount || 0 }}
         template={template}
+        homeTeamSlug={homeTeamSlug || undefined}
+        homeTeamName={homeTeamName || undefined}
+        awayTeamSlug={awayTeamSlug || undefined}
+        awayTeamName={awayTeamName || undefined}
       />
     </div>
   );

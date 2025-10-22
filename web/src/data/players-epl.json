@@ -1,0 +1,2986 @@
+[
+  {
+    "name": "---",
+    "team": "---"
+  },
+  {
+    "name": "Raya",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Donnarumma",
+    "team": "Man City"
+  },
+  {
+    "name": "Pickford",
+    "team": "Everton"
+  },
+  {
+    "name": "A.Becker",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Ederson M.",
+    "team": "Man City"
+  },
+  {
+    "name": "Pope",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Vicario",
+    "team": "Spurs"
+  },
+  {
+    "name": "Martinez",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Henderson",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Leno",
+    "team": "Fulham"
+  },
+  {
+    "name": "Lammens",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Sánchez",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Bayindir",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Onana",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Sels",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Ortega Moreno",
+    "team": "Man City"
+  },
+  {
+    "name": "Ramsdale",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Trafford",
+    "team": "Man City"
+  },
+  {
+    "name": "Roefs",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Neto",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Petrović",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Kelleher",
+    "team": "Brentford"
+  },
+  {
+    "name": "Johnstone",
+    "team": "Wolves"
+  },
+  {
+    "name": "Perri",
+    "team": "Leeds"
+  },
+  {
+    "name": "Fabianski",
+    "team": "West Ham"
+  },
+  {
+    "name": "M.Bizot",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Steele",
+    "team": "Brighton"
+  },
+  {
+    "name": "Verbruggen",
+    "team": "Brighton"
+  },
+  {
+    "name": "Weiss",
+    "team": "Burnley"
+  },
+  {
+    "name": "Jörgensen",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Travers",
+    "team": "Everton"
+  },
+  {
+    "name": "José Sá",
+    "team": "Wolves"
+  },
+  {
+    "name": "Hermansen",
+    "team": "West Ham"
+  },
+  {
+    "name": "Arrizabalaga",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Meslier",
+    "team": "Leeds"
+  },
+  {
+    "name": "Mamardashvili",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Patterson",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Areola",
+    "team": "West Ham"
+  },
+  {
+    "name": "Hein",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Setford",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Gauci",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Marschall",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Dennis",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "McKenna",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Paulsen",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Balcombe",
+    "team": "Brentford"
+  },
+  {
+    "name": "Cox",
+    "team": "Brentford"
+  },
+  {
+    "name": "Eyestone",
+    "team": "Brentford"
+  },
+  {
+    "name": "McGill",
+    "team": "Brighton"
+  },
+  {
+    "name": "Rushworth",
+    "team": "Brighton"
+  },
+  {
+    "name": "Scherpen",
+    "team": "Brighton"
+  },
+  {
+    "name": "Green",
+    "team": "Burnley"
+  },
+  {
+    "name": "Hladký",
+    "team": "Burnley"
+  },
+  {
+    "name": "Penders",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Benitez",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Matthews",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Tyrer",
+    "team": "Everton"
+  },
+  {
+    "name": "Benda",
+    "team": "Fulham"
+  },
+  {
+    "name": "Cairns",
+    "team": "Leeds"
+  },
+  {
+    "name": "Darlow",
+    "team": "Leeds"
+  },
+  {
+    "name": "Bettinelli",
+    "team": "Man City"
+  },
+  {
+    "name": "Harrison",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Heaton",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Mee",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Dúbravka",
+    "team": "Burnley"
+  },
+  {
+    "name": "Gillespie",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Odysseas",
+    "team": "Newcastle"
+  },
+  {
+    "name": "C.Miguel",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Turner",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Moore",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Nna Noukeu",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Foderingham",
+    "team": "West Ham"
+  },
+  {
+    "name": "Hegyi",
+    "team": "West Ham"
+  },
+  {
+    "name": "Bentley",
+    "team": "Wolves"
+  },
+  {
+    "name": "King",
+    "team": "Everton"
+  },
+  {
+    "name": "Lecomte",
+    "team": "Fulham"
+  },
+  {
+    "name": "Gunn",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Wright",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Proctor",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "John",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Valdimarsson",
+    "team": "Brentford"
+  },
+  {
+    "name": "Slonina",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Pécsi",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Woodman",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Austin",
+    "team": "Spurs"
+  },
+  {
+    "name": "Kinsky",
+    "team": "Spurs"
+  },
+  {
+    "name": "Gabriel",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Cucurella",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Saliba",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Virgil",
+    "team": "Liverpool"
+  },
+  {
+    "name": "J.Timber",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Gvardiol",
+    "team": "Man City"
+  },
+  {
+    "name": "Calafiori",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Frimpong",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Kerkez",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Robertson",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Aït-Nouri",
+    "team": "Man City"
+  },
+  {
+    "name": "Muñoz",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Pedro Porro",
+    "team": "Spurs"
+  },
+  {
+    "name": "Tarkowski",
+    "team": "Everton"
+  },
+  {
+    "name": "Rúben",
+    "team": "Man City"
+  },
+  {
+    "name": "Stones",
+    "team": "Man City"
+  },
+  {
+    "name": "Kiwior",
+    "team": "Arsenal"
+  },
+  {
+    "name": "White",
+    "team": "Arsenal"
+  },
+  {
+    "name": "James",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Konaté",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Akanji",
+    "team": "Man City"
+  },
+  {
+    "name": "Aké",
+    "team": "Man City"
+  },
+  {
+    "name": "Khusanov",
+    "team": "Man City"
+  },
+  {
+    "name": "Schär",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Mosquera",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Hincapie",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Branthwaite",
+    "team": "Everton"
+  },
+  {
+    "name": "Matheus N.",
+    "team": "Man City"
+  },
+  {
+    "name": "Hall",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Milenković",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Murillo",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Lewis-Skelly",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Chalobah",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Lacroix",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Burn",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Romero",
+    "team": "Spurs"
+  },
+  {
+    "name": "Zabarnyi",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Senesi",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Mitchell",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "O'Brien",
+    "team": "Everton"
+  },
+  {
+    "name": "Robinson",
+    "team": "Fulham"
+  },
+  {
+    "name": "Bradley",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Vitor Reis",
+    "team": "Man City"
+  },
+  {
+    "name": "De Ligt",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Livramento",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Trippier",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Zinchenko",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Collins",
+    "team": "Brentford"
+  },
+  {
+    "name": "Lewis-Potter",
+    "team": "Brentford"
+  },
+  {
+    "name": "Gusto",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Sosa",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Guéhi",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Mykolenko",
+    "team": "Everton"
+  },
+  {
+    "name": "Gomez",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Lewis",
+    "team": "Man City"
+  },
+  {
+    "name": "O’Reilly",
+    "team": "Man City"
+  },
+  {
+    "name": "Mazraoui",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Botman",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Thiaw",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Leoni",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Colwill",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Tsimikas",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Martinez",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Aina",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "N.Williams",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Van de Ven",
+    "team": "Spurs"
+  },
+  {
+    "name": "Hato",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Cash",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Ballard",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Digne",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Konsa",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Mings",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Truffert",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Kayode",
+    "team": "Brentford"
+  },
+  {
+    "name": "Roerslev",
+    "team": "Brentford"
+  },
+  {
+    "name": "Van den Berg",
+    "team": "Brentford"
+  },
+  {
+    "name": "Dunk",
+    "team": "Brighton"
+  },
+  {
+    "name": "Estupiñan",
+    "team": "Brighton"
+  },
+  {
+    "name": "Igor",
+    "team": "West Ham"
+  },
+  {
+    "name": "M.Sarr",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Richards",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Keane",
+    "team": "Everton"
+  },
+  {
+    "name": "Andersen",
+    "team": "Fulham"
+  },
+  {
+    "name": "Bassey",
+    "team": "Fulham"
+  },
+  {
+    "name": "Tete",
+    "team": "Fulham"
+  },
+  {
+    "name": "Bogle",
+    "team": "Leeds"
+  },
+  {
+    "name": "Struijk",
+    "team": "Leeds"
+  },
+  {
+    "name": "Shaw",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Yoro",
+    "team": "Man Utd"
+  },
+  {
+    "name": "David Carmo",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "O.Richards",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Hume",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Dragusin",
+    "team": "Spurs"
+  },
+  {
+    "name": "Spence",
+    "team": "Spurs"
+  },
+  {
+    "name": "R.Gomes",
+    "team": "Wolves"
+  },
+  {
+    "name": "Diakité",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Tchatchoua",
+    "team": "Wolves"
+  },
+  {
+    "name": "Krejčí",
+    "team": "Wolves"
+  },
+  {
+    "name": "A.Jimenez",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Savona",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Lindelöf",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Milosavljević",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Canvot",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Geertruida",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Cuiabano",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Smith",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Ajer",
+    "team": "Brentford"
+  },
+  {
+    "name": "Henry",
+    "team": "Brentford"
+  },
+  {
+    "name": "Pinnock",
+    "team": "Brentford"
+  },
+  {
+    "name": "De Cuyper",
+    "team": "Brighton"
+  },
+  {
+    "name": "F.Kadıoğlu",
+    "team": "Brighton"
+  },
+  {
+    "name": "Lamptey",
+    "team": "Brighton"
+  },
+  {
+    "name": "Van Hecke",
+    "team": "Brighton"
+  },
+  {
+    "name": "Veltman",
+    "team": "Brighton"
+  },
+  {
+    "name": "Webster",
+    "team": "Brighton"
+  },
+  {
+    "name": "Roberts",
+    "team": "Burnley"
+  },
+  {
+    "name": "Walker",
+    "team": "Burnley"
+  },
+  {
+    "name": "B.Badiashile",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Fofana",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Tosin",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Patterson",
+    "team": "Everton"
+  },
+  {
+    "name": "Castagne",
+    "team": "Fulham"
+  },
+  {
+    "name": "Diop",
+    "team": "Fulham"
+  },
+  {
+    "name": "J.Cuenca",
+    "team": "Fulham"
+  },
+  {
+    "name": "Dalot",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Dorgu",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Maguire",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Krafth",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Lascelles",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Morato",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Udogie",
+    "team": "Spurs"
+  },
+  {
+    "name": "Diouf",
+    "team": "West Ham"
+  },
+  {
+    "name": "Emerson",
+    "team": "West Ham"
+  },
+  {
+    "name": "Kilman",
+    "team": "West Ham"
+  },
+  {
+    "name": "Mavropanos",
+    "team": "West Ham"
+  },
+  {
+    "name": "N.Aguerd",
+    "team": "West Ham"
+  },
+  {
+    "name": "Scarles",
+    "team": "West Ham"
+  },
+  {
+    "name": "Agbadou",
+    "team": "Wolves"
+  },
+  {
+    "name": "Doherty",
+    "team": "Wolves"
+  },
+  {
+    "name": "H.Bueno",
+    "team": "Wolves"
+  },
+  {
+    "name": "Mosquera",
+    "team": "Wolves"
+  },
+  {
+    "name": "S.Bueno",
+    "team": "Wolves"
+  },
+  {
+    "name": "Walker-Peters",
+    "team": "West Ham"
+  },
+  {
+    "name": "Aznou",
+    "team": "Everton"
+  },
+  {
+    "name": "Møller Wolfe",
+    "team": "Wolves"
+  },
+  {
+    "name": "Maatsen",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Pau",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Boscagli",
+    "team": "Brighton"
+  },
+  {
+    "name": "Coppola",
+    "team": "Brighton"
+  },
+  {
+    "name": "Coleman",
+    "team": "Everton"
+  },
+  {
+    "name": "D.Leon",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Jair Cunha",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Danso",
+    "team": "Spurs"
+  },
+  {
+    "name": "Davies",
+    "team": "Spurs"
+  },
+  {
+    "name": "Todibo",
+    "team": "West Ham"
+  },
+  {
+    "name": "Wan-Bissaka",
+    "team": "West Ham"
+  },
+  {
+    "name": "Toti",
+    "team": "Wolves"
+  },
+  {
+    "name": "Rodon",
+    "team": "Leeds"
+  },
+  {
+    "name": "Alderete",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Alex Moreno",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Bogarde",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Sousa",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Yasin",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Akinmboni",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Hill",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Mepham",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Soler",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Fredrick",
+    "team": "Brentford"
+  },
+  {
+    "name": "Hickey",
+    "team": "Brentford"
+  },
+  {
+    "name": "Meghoma",
+    "team": "Brentford"
+  },
+  {
+    "name": "Cashin",
+    "team": "Brighton"
+  },
+  {
+    "name": "Slater",
+    "team": "Brighton"
+  },
+  {
+    "name": "Dodgson",
+    "team": "Burnley"
+  },
+  {
+    "name": "Ekdal",
+    "team": "Burnley"
+  },
+  {
+    "name": "Estève",
+    "team": "Burnley"
+  },
+  {
+    "name": "Hartman",
+    "team": "Burnley"
+  },
+  {
+    "name": "Humphreys",
+    "team": "Burnley"
+  },
+  {
+    "name": "Jordan",
+    "team": "Burnley"
+  },
+  {
+    "name": "Sambo",
+    "team": "Burnley"
+  },
+  {
+    "name": "Anselmino",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Chadi Riad",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Holding",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Kporha",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Gudmundsson",
+    "team": "Leeds"
+  },
+  {
+    "name": "Schmidt",
+    "team": "Leeds"
+  },
+  {
+    "name": "Amass",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Targett",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Alese",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Cirkin",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Hjelde",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Huggins",
+    "team": "Sunderland"
+  },
+  {
+    "name": "O'Nien",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Reinildo",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Seelt",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Phillips",
+    "team": "Spurs"
+  },
+  {
+    "name": "Takai",
+    "team": "Spurs"
+  },
+  {
+    "name": "Casey",
+    "team": "West Ham"
+  },
+  {
+    "name": "Hoever",
+    "team": "Wolves"
+  },
+  {
+    "name": "Meupiyou",
+    "team": "Wolves"
+  },
+  {
+    "name": "Pedro Lima",
+    "team": "Wolves"
+  },
+  {
+    "name": "Mukiele",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Rowe",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Campbell",
+    "team": "Everton"
+  },
+  {
+    "name": "Justin",
+    "team": "Leeds"
+  },
+  {
+    "name": "Mfuni",
+    "team": "Man City"
+  },
+  {
+    "name": "Byfield",
+    "team": "Spurs"
+  },
+  {
+    "name": "Clarke",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Kacurri",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Nichols",
+    "team": "Arsenal"
+  },
+  {
+    "name": "A.García",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Bevan",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "J.Araujo",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Arthur",
+    "team": "Brentford"
+  },
+  {
+    "name": "Ji-soo",
+    "team": "Brentford"
+  },
+  {
+    "name": "Tasker",
+    "team": "Brighton"
+  },
+  {
+    "name": "Delcroix",
+    "team": "Burnley"
+  },
+  {
+    "name": "Lucas Pires",
+    "team": "Burnley"
+  },
+  {
+    "name": "Sonne",
+    "team": "Burnley"
+  },
+  {
+    "name": "Tuanzebe",
+    "team": "Burnley"
+  },
+  {
+    "name": "Worrall",
+    "team": "Burnley"
+  },
+  {
+    "name": "Acheampong",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Clyne",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Dixon",
+    "team": "Everton"
+  },
+  {
+    "name": "Welch",
+    "team": "Everton"
+  },
+  {
+    "name": "Amissah",
+    "team": "Fulham"
+  },
+  {
+    "name": "Bijol",
+    "team": "Leeds"
+  },
+  {
+    "name": "Bornauw",
+    "team": "Leeds"
+  },
+  {
+    "name": "Byram",
+    "team": "Leeds"
+  },
+  {
+    "name": "Nallo",
+    "team": "Liverpool"
+  },
+  {
+    "name": "R.Williams",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Ramsay",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Fredricson",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Heaven",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Malacia",
+    "team": "Man Utd"
+  },
+  {
+    "name": "A.Murphy",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Ashby",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Pivas",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Abbott",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Boly",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Anderson",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Johnson",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Pembele",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Vuskovic",
+    "team": "Spurs"
+  },
+  {
+    "name": "Pond",
+    "team": "Wolves"
+  },
+  {
+    "name": "Masuaku",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Patterson",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "M.Salah",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Palmer",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Saka",
+    "team": "Arsenal"
+  },
+  {
+    "name": "B.Fernandes",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Son",
+    "team": "Spurs"
+  },
+  {
+    "name": "Marmoush",
+    "team": "Man City"
+  },
+  {
+    "name": "Wirtz",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Foden",
+    "team": "Man City"
+  },
+  {
+    "name": "Semenyo",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Mbeumo",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Luis Díaz",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Ødegaard",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Cunha",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Eze",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Gakpo",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Gordon",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Gibbs-White",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Kluivert",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Schade",
+    "team": "Brentford"
+  },
+  {
+    "name": "Neto",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Rashford",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Xavi",
+    "team": "Spurs"
+  },
+  {
+    "name": "Madueke",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Martinelli",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Trossard",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Savinho",
+    "team": "Man City"
+  },
+  {
+    "name": "Grealish",
+    "team": "Everton"
+  },
+  {
+    "name": "Maddison",
+    "team": "Spurs"
+  },
+  {
+    "name": "Rogers",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Elanga",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Johnson",
+    "team": "Spurs"
+  },
+  {
+    "name": "Kudus",
+    "team": "Spurs"
+  },
+  {
+    "name": "Enzo",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Rice",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Doku",
+    "team": "Man City"
+  },
+  {
+    "name": "Estêvão",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Sarr",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Ndiaye",
+    "team": "Everton"
+  },
+  {
+    "name": "Iwobi",
+    "team": "Fulham"
+  },
+  {
+    "name": "Szoboszlai",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Bruno G.",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Chiesa",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Garnacho",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Barnes",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Kulusevski",
+    "team": "Spurs"
+  },
+  {
+    "name": "Mitoma",
+    "team": "Brighton"
+  },
+  {
+    "name": "Mac Allister",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Bernardo",
+    "team": "Man City"
+  },
+  {
+    "name": "Cherki",
+    "team": "Man City"
+  },
+  {
+    "name": "Gündoğan",
+    "team": "Man City"
+  },
+  {
+    "name": "Rodrigo",
+    "team": "Man City"
+  },
+  {
+    "name": "Amad",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Tel",
+    "team": "Spurs"
+  },
+  {
+    "name": "Guessand",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Gittens",
+    "team": "Chelsea"
+  },
+  {
+    "name": "J.Murphy",
+    "team": "Newcastle"
+  },
+  {
+    "name": "O.Dango",
+    "team": "Brentford"
+  },
+  {
+    "name": "Minteh",
+    "team": "Brighton"
+  },
+  {
+    "name": "Kevin",
+    "team": "Fulham"
+  },
+  {
+    "name": "Bakwa",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Merino",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Tielemans",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Nkunku",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Kovačić",
+    "team": "Man City"
+  },
+  {
+    "name": "N.Gonzalez",
+    "team": "Man City"
+  },
+  {
+    "name": "Antony",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Mount",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Sancho",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Joelinton",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Hudson-Odoi",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "L.Paquetá",
+    "team": "West Ham"
+  },
+  {
+    "name": "Hee Chan",
+    "team": "Wolves"
+  },
+  {
+    "name": "Ndoye",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Yeremy",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Damsgaard",
+    "team": "Brentford"
+  },
+  {
+    "name": "March",
+    "team": "Brighton"
+  },
+  {
+    "name": "Caicedo",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Georginio",
+    "team": "Brighton"
+  },
+  {
+    "name": "Anthony",
+    "team": "Burnley"
+  },
+  {
+    "name": "Smith Rowe",
+    "team": "Fulham"
+  },
+  {
+    "name": "Gravenberch",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Reijnders",
+    "team": "Man City"
+  },
+  {
+    "name": "Souček",
+    "team": "West Ham"
+  },
+  {
+    "name": "Ward-Prowse",
+    "team": "West Ham"
+  },
+  {
+    "name": "McNeil",
+    "team": "Everton"
+  },
+  {
+    "name": "Zubimendi",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Bailey",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Iling Jr",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Tavernier",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "O'Riley",
+    "team": "Brighton"
+  },
+  {
+    "name": "Casemiro",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Summerville",
+    "team": "West Ham"
+  },
+  {
+    "name": "Guedes",
+    "team": "Wolves"
+  },
+  {
+    "name": "J.Palhinha",
+    "team": "Spurs"
+  },
+  {
+    "name": "Hutchinson",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Adli",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Okafor",
+    "team": "Leeds"
+  },
+  {
+    "name": "Dibling",
+    "team": "Everton"
+  },
+  {
+    "name": "M.Fernandes",
+    "team": "West Ham"
+  },
+  {
+    "name": "Traoré",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Fábio Vieira",
+    "team": "Arsenal"
+  },
+  {
+    "name": "McGinn",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Enciso",
+    "team": "Brighton"
+  },
+  {
+    "name": "Gruda",
+    "team": "Brighton"
+  },
+  {
+    "name": "Sima",
+    "team": "Brighton"
+  },
+  {
+    "name": "Benson",
+    "team": "Burnley"
+  },
+  {
+    "name": "Gana",
+    "team": "Everton"
+  },
+  {
+    "name": "Sessegnon",
+    "team": "Fulham"
+  },
+  {
+    "name": "Aaronson",
+    "team": "Leeds"
+  },
+  {
+    "name": "C.Jones",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Elliott",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Bobb",
+    "team": "Man City"
+  },
+  {
+    "name": "Echeverri",
+    "team": "Man City"
+  },
+  {
+    "name": "Tonali",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Anderson",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Jota",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Diarra",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Roberts",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Bergvall",
+    "team": "Spurs"
+  },
+  {
+    "name": "Solomon",
+    "team": "Spurs"
+  },
+  {
+    "name": "André",
+    "team": "Wolves"
+  },
+  {
+    "name": "Gomes",
+    "team": "Wolves"
+  },
+  {
+    "name": "Munetsi",
+    "team": "Wolves"
+  },
+  {
+    "name": "Chukwueze",
+    "team": "Fulham"
+  },
+  {
+    "name": "Nørgaard",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Buendía",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "J.Ramsey",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Milambo",
+    "team": "Brentford"
+  },
+  {
+    "name": "Bruun Larsen",
+    "team": "Burnley"
+  },
+  {
+    "name": "Andreas",
+    "team": "Fulham"
+  },
+  {
+    "name": "Wilson",
+    "team": "Fulham"
+  },
+  {
+    "name": "James",
+    "team": "Leeds"
+  },
+  {
+    "name": "Bentancur",
+    "team": "Spurs"
+  },
+  {
+    "name": "Odobert",
+    "team": "Spurs"
+  },
+  {
+    "name": "Bellegarde",
+    "team": "Wolves"
+  },
+  {
+    "name": "Fer López",
+    "team": "Wolves"
+  },
+  {
+    "name": "Nwaneri",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Hinshelwood",
+    "team": "Brighton"
+  },
+  {
+    "name": "Alcaraz",
+    "team": "Everton"
+  },
+  {
+    "name": "Adama",
+    "team": "Fulham"
+  },
+  {
+    "name": "Gnonto",
+    "team": "Leeds"
+  },
+  {
+    "name": "Harrison",
+    "team": "Leeds"
+  },
+  {
+    "name": "McAtee",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Adingra",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Bissouma",
+    "team": "Spurs"
+  },
+  {
+    "name": "J.Arias",
+    "team": "Wolves"
+  },
+  {
+    "name": "Malen",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Stach",
+    "team": "Leeds"
+  },
+  {
+    "name": "Barrenechea",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Dobbin",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Adams",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Brooks",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Christie",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Scott",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Sinisterra",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Henderson",
+    "team": "Brentford"
+  },
+  {
+    "name": "Yarmoliuk",
+    "team": "Brentford"
+  },
+  {
+    "name": "Milner",
+    "team": "Brighton"
+  },
+  {
+    "name": "Yalcouye",
+    "team": "Brighton"
+  },
+  {
+    "name": "Cullen",
+    "team": "Burnley"
+  },
+  {
+    "name": "Koleosho",
+    "team": "Burnley"
+  },
+  {
+    "name": "Dewsbury-Hall",
+    "team": "Everton"
+  },
+  {
+    "name": "Mudryk",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Kamada",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Wharton",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Garner",
+    "team": "Everton"
+  },
+  {
+    "name": "Lukić",
+    "team": "Fulham"
+  },
+  {
+    "name": "Nypan",
+    "team": "Man City"
+  },
+  {
+    "name": "Willock",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Dominguez",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "O'Brien",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Sadiki",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Talbi",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Moore",
+    "team": "Spurs"
+  },
+  {
+    "name": "B.Traore",
+    "team": "Wolves"
+  },
+  {
+    "name": "Xhaka",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Ugochukwu",
+    "team": "Burnley"
+  },
+  {
+    "name": "Douglas Luiz",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "S.Magassa",
+    "team": "West Ham"
+  },
+  {
+    "name": "Florentino",
+    "team": "Burnley"
+  },
+  {
+    "name": "Röhl",
+    "team": "Everton"
+  },
+  {
+    "name": "Kamara",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Cook",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Philip",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Carvalho",
+    "team": "Brentford"
+  },
+  {
+    "name": "Janelt",
+    "team": "Brentford"
+  },
+  {
+    "name": "Jensen",
+    "team": "Brentford"
+  },
+  {
+    "name": "Nunes",
+    "team": "Brentford"
+  },
+  {
+    "name": "Onyeka",
+    "team": "Brentford"
+  },
+  {
+    "name": "Ayari",
+    "team": "Brighton"
+  },
+  {
+    "name": "Gomez",
+    "team": "Brighton"
+  },
+  {
+    "name": "Sarmiento",
+    "team": "Brighton"
+  },
+  {
+    "name": "Watson",
+    "team": "Brighton"
+  },
+  {
+    "name": "Wieffer",
+    "team": "Brighton"
+  },
+  {
+    "name": "Churlinov",
+    "team": "Burnley"
+  },
+  {
+    "name": "Hannibal",
+    "team": "Burnley"
+  },
+  {
+    "name": "Laurent",
+    "team": "Burnley"
+  },
+  {
+    "name": "Tchaouna",
+    "team": "Burnley"
+  },
+  {
+    "name": "George",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Lavia",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Doucouré",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Hughes",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Lerma",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Iroegbunam",
+    "team": "Everton"
+  },
+  {
+    "name": "Berge",
+    "team": "Fulham"
+  },
+  {
+    "name": "Cairney",
+    "team": "Fulham"
+  },
+  {
+    "name": "Ampadu",
+    "team": "Leeds"
+  },
+  {
+    "name": "Greenwood",
+    "team": "Leeds"
+  },
+  {
+    "name": "Ramazani",
+    "team": "Leeds"
+  },
+  {
+    "name": "Gannon-Doak",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Endo",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Phillips",
+    "team": "Man City"
+  },
+  {
+    "name": "Antoñito C.",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Longstaff",
+    "team": "Leeds"
+  },
+  {
+    "name": "Sangaré",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Aleksić",
+    "team": "Sunderland"
+  },
+  {
+    "name": "E.Le Fée",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Mundle",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Bryan",
+    "team": "Spurs"
+  },
+  {
+    "name": "P.M.Sarr",
+    "team": "Spurs"
+  },
+  {
+    "name": "Álvarez",
+    "team": "West Ham"
+  },
+  {
+    "name": "Cornet",
+    "team": "West Ham"
+  },
+  {
+    "name": "L.Guilherme",
+    "team": "West Ham"
+  },
+  {
+    "name": "Nelson",
+    "team": "Brentford"
+  },
+  {
+    "name": "Barkley",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Onana",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Baleba",
+    "team": "Brighton"
+  },
+  {
+    "name": "Buonanotte",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Boateng",
+    "team": "Burnley"
+  },
+  {
+    "name": "Edwards",
+    "team": "Burnley"
+  },
+  {
+    "name": "Esse",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Gruev",
+    "team": "Leeds"
+  },
+  {
+    "name": "Tanaka",
+    "team": "Leeds"
+  },
+  {
+    "name": "Mainoo",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Ugarte",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Yates",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Neil",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Poveda",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Rigg",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Gray",
+    "team": "Spurs"
+  },
+  {
+    "name": "G.Rodriguez",
+    "team": "West Ham"
+  },
+  {
+    "name": "Kabia",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Sambi",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Broggio",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Dendoncker",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Jimoh-Aloba",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Faivre",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "H.Traorè",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Sadi",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Winterburn",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Donovan",
+    "team": "Brentford"
+  },
+  {
+    "name": "Maghoma",
+    "team": "Brentford"
+  },
+  {
+    "name": "Trevitt",
+    "team": "Brentford"
+  },
+  {
+    "name": "Knight",
+    "team": "Brighton"
+  },
+  {
+    "name": "Mazilu",
+    "team": "Brighton"
+  },
+  {
+    "name": "Moran",
+    "team": "Brighton"
+  },
+  {
+    "name": "Adewumi",
+    "team": "Burnley"
+  },
+  {
+    "name": "Banel",
+    "team": "Burnley"
+  },
+  {
+    "name": "Andrey Santos",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Paez",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Ebiowei",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "M.França",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Ozoh",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Rodney",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Umeh",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Armstrong",
+    "team": "Everton"
+  },
+  {
+    "name": "Heath",
+    "team": "Everton"
+  },
+  {
+    "name": "Metcalfe",
+    "team": "Everton"
+  },
+  {
+    "name": "Godo",
+    "team": "Fulham"
+  },
+  {
+    "name": "Harris",
+    "team": "Fulham"
+  },
+  {
+    "name": "King",
+    "team": "Fulham"
+  },
+  {
+    "name": "Crew",
+    "team": "Leeds"
+  },
+  {
+    "name": "Gelhardt",
+    "team": "Leeds"
+  },
+  {
+    "name": "Gyabi",
+    "team": "Leeds"
+  },
+  {
+    "name": "Morton",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Collyer",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Moorhouse",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Hayden",
+    "team": "Newcastle"
+  },
+  {
+    "name": "White",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Da Silva Moreira",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Stamenic",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Browne",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Ekwah",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Min-hyeok",
+    "team": "Spurs"
+  },
+  {
+    "name": "Earthy",
+    "team": "West Ham"
+  },
+  {
+    "name": "Hodge",
+    "team": "Wolves"
+  },
+  {
+    "name": "Ngumoha",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Burrowes",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Onyango",
+    "team": "Everton"
+  },
+  {
+    "name": "Harriman-Annous",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Mukasa",
+    "team": "Man City"
+  },
+  {
+    "name": "McAidoo",
+    "team": "Man City"
+  },
+  {
+    "name": "Emenalo",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Oriola",
+    "team": "Brighton"
+  },
+  {
+    "name": "Young",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Silcott-Duberry",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Konak",
+    "team": "Brentford"
+  },
+  {
+    "name": "Peart-Harris",
+    "team": "Brentford"
+  },
+  {
+    "name": "A.Ramsey",
+    "team": "Burnley"
+  },
+  {
+    "name": "Trésor",
+    "team": "Burnley"
+  },
+  {
+    "name": "Agbinone",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Ahamada",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Devenny",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "J.Rak-Sakyi",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Bates",
+    "team": "Everton"
+  },
+  {
+    "name": "Ebere",
+    "team": "Everton"
+  },
+  {
+    "name": "Reed",
+    "team": "Fulham"
+  },
+  {
+    "name": "Bajcetic",
+    "team": "Liverpool"
+  },
+  {
+    "name": "McConnell",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Fitzgerald",
+    "team": "Man Utd"
+  },
+  {
+    "name": "J.Fletcher",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Kone",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Kuol",
+    "team": "Newcastle"
+  },
+  {
+    "name": "L.Miley",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Ba",
+    "team": "Sunderland"
+  },
+  {
+    "name": "H.Jones",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Matete",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Triantis",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Olusesi",
+    "team": "Spurs"
+  },
+  {
+    "name": "Irving",
+    "team": "West Ham"
+  },
+  {
+    "name": "Orford",
+    "team": "West Ham"
+  },
+  {
+    "name": "Potts",
+    "team": "West Ham"
+  },
+  {
+    "name": "Chirewa",
+    "team": "Wolves"
+  },
+  {
+    "name": "Edozie",
+    "team": "Wolves"
+  },
+  {
+    "name": "Gonzalez",
+    "team": "Wolves"
+  },
+  {
+    "name": "Rees-Dottin",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Seung soo",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Cardines",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Dowman",
+    "team": "Arsenal"
+  },
+  {
+    "name": "D.Essugo",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Nyoni",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Haaland",
+    "team": "Man City"
+  },
+  {
+    "name": "Isak",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Gyökeres",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Ekitiké",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Watkins",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Bowen",
+    "team": "West Ham"
+  },
+  {
+    "name": "Mateta",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "João Pedro",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Wissa",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Woltemade",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Havertz",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Wood",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Šeško",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Solanke",
+    "team": "Spurs"
+  },
+  {
+    "name": "Evanilson",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Kolo Muani",
+    "team": "Spurs"
+  },
+  {
+    "name": "Richarlison",
+    "team": "Spurs"
+  },
+  {
+    "name": "N.Jackson",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Darwin",
+    "team": "Liverpool"
+  },
+  {
+    "name": "G.Jesus",
+    "team": "Arsenal"
+  },
+  {
+    "name": "Strand Larsen",
+    "team": "Wolves"
+  },
+  {
+    "name": "Welbeck",
+    "team": "Brighton"
+  },
+  {
+    "name": "Højlund",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Delap",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Raúl",
+    "team": "Fulham"
+  },
+  {
+    "name": "Thiago",
+    "team": "Brentford"
+  },
+  {
+    "name": "Kalimuendo",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Wilson",
+    "team": "West Ham"
+  },
+  {
+    "name": "Zirkzee",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Igor Jesus",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Barry",
+    "team": "Everton"
+  },
+  {
+    "name": "Füllkrug",
+    "team": "West Ham"
+  },
+  {
+    "name": "Isidor",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Ferguson",
+    "team": "Brighton"
+  },
+  {
+    "name": "Osula",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Mayenda",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Calvert-Lewin",
+    "team": "Leeds"
+  },
+  {
+    "name": "Tolu",
+    "team": "Wolves"
+  },
+  {
+    "name": "Brobbey",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Uche",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Enes Ünal",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Nketiah",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Muniz",
+    "team": "Fulham"
+  },
+  {
+    "name": "Tzimas",
+    "team": "Brighton"
+  },
+  {
+    "name": "Flemming",
+    "team": "Burnley"
+  },
+  {
+    "name": "Beto",
+    "team": "Everton"
+  },
+  {
+    "name": "Broja",
+    "team": "Burnley"
+  },
+  {
+    "name": "Awoniyi",
+    "team": "Nott'm Forest"
+  },
+  {
+    "name": "Piroe",
+    "team": "Leeds"
+  },
+  {
+    "name": "Foster",
+    "team": "Burnley"
+  },
+  {
+    "name": "Édouard",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Mateo Joseph",
+    "team": "Leeds"
+  },
+  {
+    "name": "Nmecha",
+    "team": "Leeds"
+  },
+  {
+    "name": "Amdouni",
+    "team": "Burnley"
+  },
+  {
+    "name": "Y.Chermiti",
+    "team": "Everton"
+  },
+  {
+    "name": "Bamford",
+    "team": "Leeds"
+  },
+  {
+    "name": "Fábio Silva",
+    "team": "Wolves"
+  },
+  {
+    "name": "Kalajdžić",
+    "team": "Wolves"
+  },
+  {
+    "name": "Kostoulas",
+    "team": "Brighton"
+  },
+  {
+    "name": "Redmond",
+    "team": "Aston Villa"
+  },
+  {
+    "name": "Kroupi.Jr",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Marsh",
+    "team": "Crystal Palace"
+  },
+  {
+    "name": "Wheatley",
+    "team": "Man Utd"
+  },
+  {
+    "name": "Lankshear",
+    "team": "Spurs"
+  },
+  {
+    "name": "Kusi-Asare",
+    "team": "Fulham"
+  },
+  {
+    "name": "Gray",
+    "team": "Leeds"
+  },
+  {
+    "name": "Adu-Adjei",
+    "team": "Bournemouth"
+  },
+  {
+    "name": "Morgan",
+    "team": "Brentford"
+  },
+  {
+    "name": "Barnes",
+    "team": "Burnley"
+  },
+  {
+    "name": "Obafemi",
+    "team": "Burnley"
+  },
+  {
+    "name": "Sherif",
+    "team": "Everton"
+  },
+  {
+    "name": "Danns",
+    "team": "Liverpool"
+  },
+  {
+    "name": "Neave",
+    "team": "Newcastle"
+  },
+  {
+    "name": "Abdullahi",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Luís Hemir",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Rusyn",
+    "team": "Sunderland"
+  },
+  {
+    "name": "Scarlett",
+    "team": "Spurs"
+  },
+  {
+    "name": "Marshall",
+    "team": "West Ham"
+  },
+  {
+    "name": "Chiwome",
+    "team": "Wolves"
+  },
+  {
+    "name": "Fraser",
+    "team": "Wolves"
+  },
+  {
+    "name": "Marc Guiu",
+    "team": "Chelsea"
+  },
+  {
+    "name": "Obi",
+    "team": "Man Utd"
+  }
+]

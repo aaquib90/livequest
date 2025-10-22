@@ -5,6 +5,7 @@ import { Sparkle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/serverClient";
+import { matchTeam } from "@/lib/football/teams";
 
 import EmbedClient from "./ui/EmbedClient";
 
@@ -37,6 +38,29 @@ export default async function EmbedPage({
   const orderPref =
     (liveblog.settings?.update_order as "newest" | "oldest") || "newest";
   const template = (liveblog.settings?.template as string | undefined) ?? null;
+  const matchId =
+    (liveblog.settings?.match_id as string | number | undefined) ?? undefined;
+
+  let homeTeamName: string | null = null;
+  let awayTeamName: string | null = null;
+  let homeTeamSlug: string | null = null;
+  let awayTeamSlug: string | null = null;
+
+  if (template === "football" && matchId) {
+    const { data: match } = await supabase
+      .from("matches")
+      .select("home_team_name,away_team_name")
+      .eq("id", matchId)
+      .single();
+    if (match) {
+      homeTeamName = match.home_team_name as string;
+      awayTeamName = match.away_team_name as string;
+      const home = homeTeamName ? matchTeam(homeTeamName) : null;
+      const away = awayTeamName ? matchTeam(awayTeamName) : null;
+      homeTeamSlug = home?.slug ?? null;
+      awayTeamSlug = away?.slug ?? null;
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
@@ -61,6 +85,10 @@ export default async function EmbedPage({
             liveblogId={liveblog.id}
             order={orderPref}
             template={template}
+            homeTeamName={homeTeamName || undefined}
+            homeTeamSlug={homeTeamSlug || undefined}
+            awayTeamName={awayTeamName || undefined}
+            awayTeamSlug={awayTeamSlug || undefined}
           />
         </CardContent>
       </Card>

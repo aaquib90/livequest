@@ -9,6 +9,7 @@ import {
   FootballEventBadge,
   FootballEventBanner,
 } from "@/components/football/FootballEventBadge";
+import { FootballEventDetails } from "@/components/football/FootballEventDetails";
 import type { FootballEventKey } from "@/lib/football/events";
 import { createClient } from "@/lib/supabase/browserClient";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ type TextContent = {
   text: string;
   title?: string;
   event?: FootballEventKey | "" | null;
+  event_meta?: Record<string, unknown> | null;
   image?: { path: string; width?: number; height?: number };
 };
 type ImageContent = {
@@ -51,11 +53,19 @@ export default function Feed({
   liveblogId,
   order = "newest",
   template,
+  homeTeamName,
+  homeTeamSlug,
+  awayTeamName,
+  awayTeamSlug,
 }: {
   initialUpdates: Update[];
   liveblogId: string;
   order?: "newest" | "oldest";
   template?: string | null;
+  homeTeamName?: string;
+  homeTeamSlug?: string;
+  awayTeamName?: string;
+  awayTeamSlug?: string;
 }) {
   const supabase = createClient();
   const [updates, setUpdates] = useState<Update[]>(initialUpdates);
@@ -76,7 +86,11 @@ export default function Feed({
         (payload: RealtimePostgresChangesPayload<Update>) => {
           if (payload.eventType === "INSERT" && payload.new) {
             const inserted = payload.new;
-            if (!inserted || (inserted as any).status === "published" || typeof (inserted as any).status === "undefined") {
+            if (
+              !inserted ||
+              inserted.status === "published" ||
+              typeof inserted.status === "undefined"
+            ) {
               setUpdates((prev) => [inserted, ...prev]);
               // mark as new to trigger enter animations briefly
               setNewIds((prev) => {
@@ -143,39 +157,57 @@ export default function Feed({
         <article
           key={u.id}
           className={cn(
-            "rounded-3xl border border-border/60 bg-background/70 p-6 shadow-[0_20px_35px_-30px_rgba(9,9,11,0.8)]",
-            isNew && "will-change-transform animate-[lb-slide-fade-in_480ms_cubic-bezier(0.22,1,0.36,1)_both]"
+            "group relative overflow-hidden rounded-3xl border border-border/60 bg-background/75 p-6 shadow-[0_28px_62px_-42px_rgba(8,8,12,0.95)] transition-all duration-500 hover:border-border/40",
+            u.pinned &&
+              "border-amber-400/60 bg-gradient-to-br from-amber-500/12 via-background/70 to-background/90",
+            isNew &&
+              "will-change-transform animate-[lb-slide-fade-in_520ms_cubic-bezier(0.22,1,0.36,1)_both]"
           )}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-3">
-              {u.pinned || eventKey ? (
-                <div className="flex flex-wrap gap-2">
-                  {u.pinned ? (
-                    <Badge variant="muted" className="border-border/40">
-                      <Pin className="mr-1.5 h-3.5 w-3.5" />
-                      Pinned
-                    </Badge>
-                  ) : null}
-                  {eventKey ? (
-                    <FootballEventBadge event={eventKey} size="sm" />
-                  ) : null}
-                </div>
-              ) : null}
-              {eventKey ? (
-                <FootballEventBanner
-                  event={eventKey}
-                  isNew={isNew}
-                  subtle
-                  className="border border-white/10"
-                />
-              ) : null}
-              <RenderContent content={u.content} isNew={isNew} />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_100%_0%,rgba(59,130,246,0.14),transparent)] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
+          {u.pinned ? (
+            <span className="pointer-events-none absolute -top-12 left-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-amber-500/15 blur-3xl" />
+          ) : null}
+          <div className="relative z-[1] flex flex-col gap-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {u.pinned ? (
+                  <Badge variant="muted" className="border-border/40 bg-amber-500/10 text-amber-200">
+                    <Pin className="mr-1.5 h-3.5 w-3.5" />
+                    Pinned
+                  </Badge>
+                ) : null}
+                {eventKey ? (
+                  <FootballEventBadge event={eventKey} size="sm" />
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {u.published_at ? formatDate(u.published_at) : ""}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            {eventKey ? (
+              <FootballEventBanner
+                event={eventKey}
+                isNew={isNew}
+                subtle
+                className="border border-white/10"
+              />
+            ) : null}
+            {eventKey && textContent?.event_meta ? (
+              <FootballEventDetails
+                event={eventKey}
+                meta={textContent.event_meta}
+                isNew={isNew}
+                context={{
+                  homeTeamName,
+                  homeTeamSlug,
+                  awayTeamName,
+                  awayTeamSlug,
+                }}
+              />
+            ) : null}
+            <RenderContent content={u.content} isNew={isNew} />
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 type="button"
                 size="sm"

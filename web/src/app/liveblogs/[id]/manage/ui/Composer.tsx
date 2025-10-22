@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent, useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 
 import { Button } from "@/components/ui/button";
@@ -22,15 +22,24 @@ import {
   type FootballEventKey,
   footballEventOptions,
 } from "@/lib/football/events";
+import { matchTeam } from "@/lib/football/teams";
 
 export default function Composer({
   liveblogId,
   template,
   layout = "sidebar",
+  homeTeamSlug,
+  homeTeamName,
+  awayTeamSlug,
+  awayTeamName,
 }: {
   liveblogId: string;
   template?: string | null;
   layout?: "sidebar" | "full";
+  homeTeamSlug?: string;
+  homeTeamName?: string;
+  awayTeamSlug?: string;
+  awayTeamName?: string;
 }) {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -38,6 +47,15 @@ export default function Composer({
   const [status, setStatus] = useState<"published" | "draft" | "scheduled">("published");
   const [scheduledAt, setScheduledAt] = useState<string>("");
   const [eventType, setEventType] = useState<"" | FootballEventKey>("");
+  const [teamSide, setTeamSide] = useState<"home" | "away">("home");
+  const [squadHome, setSquadHome] = useState<Array<{ id: string; name: string }>>([]);
+  const [squadAway, setSquadAway] = useState<Array<{ id: string; name: string }>>([]);
+  const [player, setPlayer] = useState<string>("");
+  const [playerIn, setPlayerIn] = useState<string>("");
+  const [playerOut, setPlayerOut] = useState<string>("");
+  const [manualName, setManualName] = useState<string>("");
+  const [manualIn, setManualIn] = useState<string>("");
+  const [manualOut, setManualOut] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -119,6 +137,24 @@ export default function Composer({
       };
       if (isFootball && eventType) {
         payload.event = eventType;
+        // Attach event_meta (names only, FE enrichment)
+        if (eventType === "goal" || eventType === "own_goal") {
+          const chosen = (teamSide === "home" ? player : player) || manualName.trim();
+          payload.event_meta = {
+            team: teamSide,
+            player: chosen || undefined,
+            teamLabel: teamSide === "home" ? (homeTeamName || "Home") : (awayTeamName || "Away"),
+          };
+        } else if (eventType === "substitution") {
+          const outName = playerOut || manualOut.trim();
+          const inName = playerIn || manualIn.trim();
+          payload.event_meta = {
+            team: teamSide,
+            playerOut: outName || undefined,
+            playerIn: inName || undefined,
+            teamLabel: teamSide === "home" ? (homeTeamName || "Home") : (awayTeamName || "Away"),
+          };
+        }
       }
     }
     const { data: userData } = await supabase.auth.getUser();
@@ -152,6 +188,14 @@ export default function Composer({
       setStatus("published");
       setScheduledAt("");
       setAttachedImage(null);
+      // reset event selections
+      setEventType("");
+      setPlayer("");
+      setPlayerIn("");
+      setPlayerOut("");
+      setManualName("");
+      setManualIn("");
+      setManualOut("");
       // Fire-and-forget broadcast to Discord (if webhook configured)
       if (status === "published") {
         try {
@@ -264,6 +308,35 @@ export default function Composer({
       }
     }
   }
+
+  async function loadSquad(input?: string): Promise<Array<{ id: string; name: string }>> {
+    const team = input ? matchTeam(input)?.slug || input : undefined;
+    if (!team) return [];
+    try {
+      const { data, error } = await supabase
+        .from("players")
+        .select("id,name")
+        .eq("competition_id", "premier-league")
+        .eq("team_slug", team);
+      if (error) return [];
+      return (data || []).map((p: any) => ({ id: String(p.id), name: String(p.name) }));
+    } catch {
+      return [];
+    }
+  }
+
+  // Load squads on mount or when slugs change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    (async () => {
+      const [h, a] = await Promise.all([
+        loadSquad(homeTeamSlug || homeTeamName),
+        loadSquad(awayTeamSlug || awayTeamName),
+      ]);
+      setSquadHome(h);
+      setSquadAway(a);
+    })();
+  }, [homeTeamSlug, awayTeamSlug, homeTeamName, awayTeamName]);
 
   const introCard = (
     <div className="flex flex-col gap-4 rounded-2xl border border-border/50 bg-background/60 p-5">
@@ -430,6 +503,78 @@ export default function Composer({
             ))}
           </Select>
         </div>
+        {eventType ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Team</Label>
+                <Select
+                  value={teamSide}
+                  onChange={(e) => setTeamSide((e.target.value as "home" | "away") || "home")}
+                  className="bg-background/70"
+                >
+                  <option value="home">{homeTeamName || "Home"}</option>
+                  <option value="away">{awayTeamName || "Away"}</option>
+                </Select>
+              </div>
+            </div>
+
+            {(eventType === "goal" || eventType === "own_goal") ? (
+              <div className="grid gap-3">
+                <div className="space-y-2">
+                  <Label>Player</Label>
+                  <Select
+                    value={player}
+                    onChange={(e) => setPlayer(e.target.value)}
+                    className="bg-background/70"
+                  >
+                    <option value="">— Select —</option>
+                    {(teamSide === "home" ? squadHome : squadAway).map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Or type a name</Label>
+                  <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Player name" className="bg-background/70" />
+                </div>
+              </div>
+            ) : null}
+
+            {eventType === "substitution" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Off (player out)</Label>
+                  <Select
+                    value={playerOut}
+                    onChange={(e) => setPlayerOut(e.target.value)}
+                    className="bg-background/70"
+                  >
+                    <option value="">— Select —</option>
+                    {(teamSide === "home" ? squadHome : squadAway).map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </Select>
+                  <Input value={manualOut} onChange={(e) => setManualOut(e.target.value)} placeholder="Or type a name" className="bg-background/70" />
+                </div>
+                <div className="space-y-2">
+                  <Label>On (player in)</Label>
+                  <Select
+                    value={playerIn}
+                    onChange={(e) => setPlayerIn(e.target.value)}
+                    className="bg-background/70"
+                  >
+                    <option value="">— Select —</option>
+                    {(teamSide === "home" ? squadHome : squadAway).map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </Select>
+                  <Input value={manualIn} onChange={(e) => setManualIn(e.target.value)} placeholder="Or type a name" className="bg-background/70" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <p className="text-xs text-muted-foreground">
           Events power the supporter-facing timeline and match widgets.
         </p>
