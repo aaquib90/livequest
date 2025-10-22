@@ -178,9 +178,33 @@ export default function EmbedClient({
             }, 1400);
           } else if (payload.eventType === "UPDATE" && payload.new) {
             const updated = payload.new;
-            setUpdates((prev) =>
-              prev.map((u) => (u.id === updated.id ? updated : u))
-            );
+            const newStatus = (updated as any)?.status;
+            let insertedViaUpdate = false;
+            setUpdates((prev) => {
+              const exists = prev.some((u) => u.id === updated.id);
+              if (exists) {
+                return prev.map((u) => (u.id === updated.id ? updated : u));
+              }
+              if (newStatus === "published") {
+                insertedViaUpdate = true;
+                return [updated, ...prev];
+              }
+              return prev;
+            });
+            if (insertedViaUpdate) {
+              setNewIds((prev) => {
+                const next = new Set(prev);
+                next.add(updated.id);
+                return next;
+              });
+              setTimeout(() => {
+                setNewIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(updated.id);
+                  return next;
+                });
+              }, 1400);
+            }
           } else if (payload.eventType === "DELETE" && payload.old) {
             const removed = payload.old;
             setUpdates((prev) => prev.filter((u) => u.id !== removed.id));
