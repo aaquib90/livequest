@@ -1,4 +1,4 @@
-# Livequest Studio
+# Livequest Studio 
 
 Livequest Studio helps newsrooms and creators cover live events with a fast editor, polished embeds, and real-time analytics. It is built with Next.js App Router, Supabase, and Tailwind CSS.
 
