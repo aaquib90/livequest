@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/serverClient';
-import { sendPushToLiveblog, type PushPayload } from '@/lib/notifications/push';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -22,12 +21,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!lb || lb.owner_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const payload = (body?.payload || null) as PushPayload | null;
+    const payload = (body?.payload || null) as { title?: string; body?: string; url: string; tag?: string; icon?: string } | null;
     if (!payload || typeof payload.url !== 'string') {
       return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
     }
-    await sendPushToLiveblog(liveblogId, payload);
-    return NextResponse.json({ ok: true });
+    // Forward to dispatcher (Cloudflare Worker or external service) if configured
+    const dispatcherUrl = process.env.PUSH_DISPATCH_URL || '';
+    const dispatcherToken = process.env.PUSH_DISPATCH_TOKEN || '';
+    if (dispatcherUrl) {
+      try {
+        const url = new URL(`/notify/${liveblogId}`, dispatcherUrl).toString();
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(dispatcherToken ? { Authorization: `Bearer ${dispatcherToken}` } : {}),
+          },
+          body: JSON.stringify({ payload }),
+        });
+        return NextResponse.json({ ok: res.ok }, { status: 200 });
+      } catch {
+        return NextResponse.json({ ok: false }, { status: 200 });
+      }
+    }
+    // No dispatcher configured; accept but not delivered
+    return NextResponse.json({ ok: false, dispatched: false }, { status: 200 });
   } catch {
     return NextResponse.json({ error: 'server_error' }, { status: 500 });
   }
