@@ -76,24 +76,7 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - `npm run start` – run the compiled production server.
 - `npm run lint` – lint the codebase with ESLint.
 
-### Local Players Test Endpoints
-
-Ensure `.env.local` has Supabase credentials:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
-
-Then query:
-
-```
-curl "http://localhost:3000/api/players/by-team?team=Man%20Utd"
-curl "http://localhost:3000/api/players/by-team?team=manchester-united"
-curl "http://localhost:3000/api/players/search?q=rashford"
-```
-
-Players must be imported into Supabase beforehand.
+<!-- Players test endpoints removed to simplify Cloudflare Pages build -->
 
 ## Workflows & Integrations
 
