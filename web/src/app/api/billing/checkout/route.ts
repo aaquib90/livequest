@@ -90,11 +90,11 @@ export async function POST(req: NextRequest) {
     console.error("stripe_checkout_error", err);
     if (err instanceof StripeApiError) {
       return NextResponse.json(
-        { error: err.message, code: err.code ?? null },
+        { error: err.message, code: err.code ?? null, detail: (err as any)?.response ?? null },
         { status: err.status },
       );
     }
     const message = err instanceof Error ? err.message : "server_error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message, detail: JSON.stringify(err) }, { status: 500 });
   }
 }
