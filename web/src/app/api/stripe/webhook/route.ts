@@ -96,7 +96,7 @@ async function upsertSubscriptionFromStripe(
   };
 
   const { error } = await admin
-    .from("subscriptions", { schema: "billing" })
+    .from("billing.subscriptions")
     .upsert(payload, { onConflict: "account_id" });
   if (error) {
     throw error;
@@ -134,7 +134,7 @@ async function syncCheckoutSession(
   };
 
   const { data: updatedRows, error: updateError } = await admin
-    .from("subscriptions", { schema: "billing" })
+    .from("billing.subscriptions")
     .update(payload)
     .eq("account_id", accountId)
     .select("account_id");
@@ -145,7 +145,7 @@ async function syncCheckoutSession(
 
   if (!updatedRows?.length) {
     const { error: insertError } = await admin
-      .from("subscriptions", { schema: "billing" })
+      .from("billing.subscriptions")
       .insert({
         account_id: accountId,
         plan: "free",
@@ -175,7 +175,7 @@ async function lookupAccountIdBySubscription(
 ): Promise<string | null> {
   if (!subscriptionId) return null;
   const { data, error } = await admin
-    .from("subscriptions", { schema: "billing" })
+    .from("billing.subscriptions")
     .select("account_id")
     .eq("stripe_subscription_id", subscriptionId)
     .maybeSingle();
@@ -190,7 +190,7 @@ async function lookupAccountIdByCustomer(
 ): Promise<string | null> {
   if (!customerId) return null;
   const { data, error } = await admin
-    .from("subscriptions", { schema: "billing" })
+    .from("billing.subscriptions")
     .select("account_id")
     .eq("stripe_customer_id", customerId)
     .maybeSingle();

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
 
     const { data: existingSubscription } = await admin
-      .from("subscriptions", { schema: "billing" })
+      .from("billing.subscriptions")
       .select("stripe_customer_id")
       .eq("account_id", user.id)
       .maybeSingle();
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const upsertResponse = await admin
-      .from("subscriptions", { schema: "billing" })
+      .from("billing.subscriptions")
       .upsert(
         {
           account_id: user.id,
