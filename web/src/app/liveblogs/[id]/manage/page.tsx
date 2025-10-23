@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { notFound, redirect } from "next/navigation";
 import { BarChart3, Radio, Sparkles } from "lucide-react";
 
@@ -15,8 +16,17 @@ import EmbedButton from "./ui/EmbedButton";
 import SettingsButton from "./ui/SettingsButton";
 import { createClient } from "@/lib/supabase/serverClient";
 
-import ManageTabs from "./ui/ManageTabs";
 import { matchTeam } from "@/lib/football/teams";
+
+const ManageTabs = dynamic(() => import("./ui/ManageTabs"), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6">
+      <div className="h-10 w-full animate-pulse rounded-2xl bg-muted/40" />
+      <div className="h-[480px] animate-pulse rounded-3xl border border-border/60 bg-background/40" />
+    </div>
+  ),
+});
 
 export const runtime = "edge";
 
