@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CircleDot, CircleUserRound, Radio, Trophy } from "lucide-react";
+import { CircleUserRound, Radio, Trophy } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/browserClient";
@@ -44,9 +44,13 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
       <header className="sticky top-4 z-50">
         <div className="flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-background/80 px-4 py-3 shadow-[0_0_60px_rgba(9,9,11,0.45)] backdrop-blur-md sm:px-6">
           <Link href="/" className="group flex items-center gap-3">
-            <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 shadow-[inset_0_0_0_1px_rgba(244,244,245,0.04)] transition-all group-hover:shadow-[0_0_25px_rgba(161,161,170,0.18)]">
-              <CircleDot className="h-5 w-5 text-zinc-300 transition-transform duration-300 group-hover:scale-105" />
-              <span className="absolute inset-0 bg-gradient-to-t from-zinc-900/0 via-zinc-900/0 to-zinc-100/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-zinc-950/80 shadow-[inset_0_0_0_1px_rgba(244,244,245,0.04)] transition-all group-hover:shadow-[0_0_25px_rgba(161,161,170,0.18)]">
+              <img
+                src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(1).svg"
+                alt="Livequest logo"
+                className="h-full w-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
+              />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-900/0 via-zinc-900/0 to-zinc-100/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
             </span>
             <div className="flex flex-col">
               <span className="font-semibold tracking-tight text-lg sm:text-xl">Livequest</span>

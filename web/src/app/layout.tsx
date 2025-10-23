@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: "Livequest Studio",
   description:
     "Craft real-time coverage with polished storytelling tools, beautiful embeds, and instant publishing.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

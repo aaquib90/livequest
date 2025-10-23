@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
           body: String(text).slice(0, 140),
           url: site ? `${site}/embed/${row.liveblog_id}` : "",
           tag: `lb-${row.liveblog_id}`,
-          icon: "/favicon.ico",
-          badge: "/favicon.ico",
+          icon: "/favicon.svg",
+          badge: "/favicon.svg",
         };
         const dispatcher = process.env.PUSH_DISPATCH_URL || "";
         if (dispatcher && payload.url) {

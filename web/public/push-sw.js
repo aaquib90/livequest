@@ -13,8 +13,8 @@ self.addEventListener('push', (event) => {
     const options = {
       body: data.body || '',
       tag: data.tag || 'liveblog-update',
-      icon: data.icon || '/favicon.ico',
-      badge: data.badge || '/favicon.ico',
+      icon: data.icon || '/favicon.svg',
+      badge: data.badge || '/favicon.svg',
       data: { url: data.url },
     };
     event.waitUntil(self.registration.showNotification(title, options));
@@ -37,5 +37,4 @@ self.addEventListener('notificationclick', (event) => {
     if (self.clients.openWindow) return self.clients.openWindow(url);
   })());
 });
-
 
