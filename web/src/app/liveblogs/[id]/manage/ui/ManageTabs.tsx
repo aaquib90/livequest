@@ -41,6 +41,7 @@ export default function ManageTabs({
 }) {
   const [tab, setTab] = useState<"coverage" | "planner" | "analytics" | "sponsors">("coverage");
   const [stats, setStats] = useState(analytics);
+  const supabaseClient = useMemo(() => createClient(), []);
   const [sponsors, setSponsors] = useState<Array<{
     id: string;
     name: string;
@@ -72,14 +73,22 @@ export default function ManageTabs({
 
     async function refresh() {
       try {
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+        const authHeaders = session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined;
         const [analyticsRes, sponsorsRes] = await Promise.all([
           fetch(`/api/liveblogs/${liveblogId}/analytics`, {
             cache: "no-store",
             credentials: "include",
+            headers: authHeaders,
           }),
           fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
             cache: "no-store",
             credentials: "include",
+            headers: authHeaders,
           }),
         ]);
         if (!cancelled && analyticsRes.ok) {
@@ -122,7 +131,7 @@ export default function ManageTabs({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [liveblogId]);
+  }, [liveblogId, supabaseClient]);
 
   return (
     <div className="space-y-6">
@@ -214,9 +223,14 @@ export default function ManageTabs({
             slots={sponsors}
             onRefresh={async () => {
               try {
+                const {
+                  data: { session },
+                } = await supabaseClient.auth.getSession();
+                const authHeaders = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
                 const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
                   cache: "no-store",
                   credentials: "include",
+                  headers: authHeaders,
                 });
                 if (!res.ok) return;
                 const json = await res.json();
@@ -425,9 +439,16 @@ function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; 
     setSaving(true);
     setError(null);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const authHeaders = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
       const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
         credentials: "include",
         body: JSON.stringify({
           name: name.trim(),
@@ -469,9 +490,14 @@ function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; 
 
   async function removeSponsor(id: string) {
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const authHeaders = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
       await fetch(`/api/liveblogs/${liveblogId}/sponsors/${id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: authHeaders,
       });
       await onRefresh();
     } catch {}

@@ -4,11 +4,16 @@ import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
 
-async function requireEditorAccess(liveblogId: string) {
+async function requireEditorAccess(liveblogId: string, req: Request) {
   const supabase = await createClient();
+  let token: string | null = null;
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7).trim() || null;
+  }
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = token ? await supabase.auth.getUser(token) : await supabase.auth.getUser();
   if (!user) {
     return { supabase, user: null, allowed: false };
   }
@@ -34,7 +39,7 @@ export async function GET(
   try {
     const liveblogId = params.id;
     if (!liveblogId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-    const { supabase, allowed } = await requireEditorAccess(liveblogId);
+    const { supabase, allowed } = await requireEditorAccess(liveblogId, _req);
     if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     const { data, error } = await supabase
@@ -113,7 +118,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const liveblogId = params.id;
     if (!liveblogId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-    const { supabase, user, allowed } = await requireEditorAccess(liveblogId);
+    const { supabase, user, allowed } = await requireEditorAccess(liveblogId, req);
     if (!allowed || !user) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
     const payload = await req.json().catch(() => ({}));
