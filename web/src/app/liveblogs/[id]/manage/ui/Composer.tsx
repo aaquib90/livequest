@@ -33,6 +33,7 @@ export default function Composer({
   homeTeamName,
   awayTeamSlug,
   awayTeamName,
+  sponsorOptions = [],
 }: {
   liveblogId: string;
   template?: string | null;
@@ -41,6 +42,7 @@ export default function Composer({
   homeTeamName?: string;
   awayTeamSlug?: string;
   awayTeamName?: string;
+  sponsorOptions?: Array<{ id: string; name: string }>;
 }) {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -49,7 +51,9 @@ export default function Composer({
   const [scheduledAt, setScheduledAt] = useState<string>("");
   const [eventType, setEventType] = useState<"" | FootballEventKey>("");
   const [teamSide, setTeamSide] = useState<"home" | "away">("home");
-  const [sponsored, setSponsored] = useState(true);
+  const [sponsored, setSponsored] = useState(sponsorOptions.length > 0);
+  const [selectedSponsorId, setSelectedSponsorId] = useState<string | null>(sponsorOptions[0]?.id ?? null);
+  const prevSponsorCount = useRef<number>(sponsorOptions.length);
   const [squadHome, setSquadHome] = useState<Array<{ id: string; name: string }>>([]);
   const [squadAway, setSquadAway] = useState<Array<{ id: string; name: string }>>([]);
   const [player, setPlayer] = useState<string>("");
@@ -126,10 +130,9 @@ export default function Composer({
           image: (preview && preview.image) || undefined,
           siteName: (preview && preview.siteName) || undefined,
           embed: (preview && preview.embed) || undefined,
-          sponsored,
         };
       } catch {
-        payload = { type: "link", url: url.trim(), sponsored };
+        payload = { type: "link", url: url.trim() };
       }
     } else {
       payload = {
@@ -137,7 +140,6 @@ export default function Composer({
         title: title.trim() || undefined,
         text: text.trim(),
         image: attachedImage ? { path: attachedImage.path, width: attachedImage.width, height: attachedImage.height } : undefined,
-        sponsored,
       };
       if (isFootball && eventType) {
         payload.event = eventType;
@@ -161,6 +163,13 @@ export default function Composer({
         }
       }
     }
+
+    const contentPayload = {
+      ...payload,
+      sponsored,
+      sponsor_slot_id: sponsored ? selectedSponsorId : null,
+    } as Record<string, unknown>;
+
     const { data: userData } = await supabase.auth.getUser();
     const author_id = userData.user?.id ?? null;
     let scheduled_at: string | null = null;
@@ -177,7 +186,7 @@ export default function Composer({
           .from("updates")
           .insert({
             liveblog_id: liveblogId,
-            content: payload,
+            content: contentPayload,
             status,
             scheduled_at,
             author_id,
@@ -200,20 +209,21 @@ export default function Composer({
       setManualName("");
       setManualIn("");
       setManualOut("");
-      setSponsored(true);
+      setSponsored(sponsorOptions.length > 0);
+      setSelectedSponsorId(sponsorOptions[0]?.id ?? null);
       // Fire-and-forget broadcast to Discord (if webhook configured)
       if (status === "published") {
         try {
           fetch(`/api/liveblogs/${liveblogId}/broadcast/discord`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: payload }),
+            body: JSON.stringify({ content: contentPayload }),
             keepalive: true,
           }).catch(() => {});
         } catch {}
         // Fire-and-forget push notification
         try {
-          const text = (payload as any)?.title || (payload as any)?.text || 'New update';
+          const text = (contentPayload as any)?.title || (contentPayload as any)?.text || "New update";
           const site = process.env.NEXT_PUBLIC_SITE_URL || '';
           fetch(`/api/liveblogs/${liveblogId}/broadcast/notify`, {
             method: "POST",
@@ -310,10 +320,24 @@ export default function Composer({
           .insert({
             liveblog_id: liveblogId,
             status: "published",
-            content: { type: "image", path: key, width, height, sponsored },
+            content: {
+              type: "image",
+              path: key,
+              width,
+              height,
+              sponsored,
+              sponsor_slot_id: sponsored ? selectedSponsorId : null,
+            },
           });
         try {
-          const content = { type: "image", path: key, width, height } as const;
+          const content = {
+            type: "image",
+            path: key,
+            width,
+            height,
+            sponsored,
+            sponsor_slot_id: sponsored ? selectedSponsorId : null,
+          } as const;
           fetch(`/api/liveblogs/${liveblogId}/broadcast/discord`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -355,6 +379,24 @@ export default function Composer({
       setSquadAway(a);
     })();
   }, [homeTeamSlug, awayTeamSlug, homeTeamName, awayTeamName]);
+
+  useEffect(() => {
+    const count = sponsorOptions.length;
+    if (!count) {
+      setSponsored(false);
+      setSelectedSponsorId(null);
+    } else {
+      setSelectedSponsorId((prev) =>
+        prev && sponsorOptions.some((opt) => opt.id === prev)
+          ? prev
+          : sponsorOptions[0].id,
+      );
+      if (prevSponsorCount.current === 0) {
+        setSponsored(true);
+      }
+    }
+    prevSponsorCount.current = count;
+  }, [sponsorOptions]);
 
   const introCard = (
     <div className="flex flex-col gap-4 rounded-2xl border border-border/50 bg-background/60 p-5">
@@ -433,12 +475,35 @@ export default function Composer({
           id="liveblog-sponsored"
           type="checkbox"
           checked={sponsored}
+          disabled={!sponsorOptions.length}
           onChange={(e) => setSponsored(e.target.checked)}
-          className="h-4 w-4 rounded border-border bg-background"
+          className="h-4 w-4 rounded border-border bg-background disabled:cursor-not-allowed"
         />
         <Label htmlFor="liveblog-sponsored" className="text-sm">Mark this update as sponsored</Label>
-        <span className="text-xs text-muted-foreground">Sponsored updates include a partner badge in the embed.</span>
+        {!sponsorOptions.length ? (
+          <span className="text-xs text-muted-foreground">Add a sponsor slot to enable branding.</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Sponsored updates include partner branding in the embed.</span>
+        )}
       </div>
+
+      {sponsored && sponsorOptions.length ? (
+        <div className="space-y-2">
+          <Label htmlFor="liveblog-sponsor">Sponsor placement</Label>
+          <select
+            id="liveblog-sponsor"
+            value={selectedSponsorId ?? ""}
+            onChange={(e) => setSelectedSponsorId(e.target.value || null)}
+            className="w-full rounded-md border border-border bg-background/70 px-3 py-2 text-sm text-foreground"
+          >
+            {sponsorOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       <p className="text-xs text-muted-foreground">
         Use Cmd ⌘ / Ctrl ⌃ + Enter for a quick send.

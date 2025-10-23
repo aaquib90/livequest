@@ -55,6 +55,14 @@ export default function ManageTabs({
     ctr24h: number;
   }>>([]);
 
+  const activeSponsorOptions = useMemo(
+    () =>
+      sponsors
+        .filter((slot) => slot.status === "active")
+        .map((slot) => ({ id: slot.id, name: slot.name })),
+    [sponsors],
+  );
+
   useEffect(() => {
     setStats(analytics);
   }, [analytics]);
@@ -137,6 +145,7 @@ export default function ManageTabs({
               homeTeamName={homeTeamName}
               awayTeamSlug={awayTeamSlug}
               awayTeamName={awayTeamName}
+              sponsorOptions={activeSponsorOptions}
             />
           </div>
 
