@@ -1,7 +1,6 @@
-import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 
-import { getStripeClient } from "@/lib/stripe";
+import { verifyStripeSignature } from "@/lib/billing/stripeEdge";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 
 export const runtime = "edge";
@@ -19,12 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "signature_missing" }, { status: 400 });
   }
 
-  const stripe = getStripeClient();
-
-  let event: Stripe.Event;
+  let event: StripeEvent;
   try {
     const payload = await req.text();
-    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    await verifyStripeSignature(payload, signature, webhookSecret);
+    event = JSON.parse(payload) as StripeEvent;
   } catch (err) {
     console.error("stripe_webhook_signature_error", err);
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
@@ -37,18 +35,10 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted":
-        await upsertSubscriptionFromStripe(
-          event.data.object as Stripe.Subscription,
-          admin,
-          event.id,
-        );
+        await upsertSubscriptionFromStripe(event.data.object as StripeSubscription, admin, event.id);
         break;
       case "checkout.session.completed":
-        await syncCheckoutSession(
-          event.data.object as Stripe.Checkout.Session,
-          admin,
-          event.id,
-        );
+        await syncCheckoutSession(event.data.object as StripeCheckoutSession, admin, event.id);
         break;
       default:
         break;
@@ -62,7 +52,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function upsertSubscriptionFromStripe(
-  subscription: Stripe.Subscription,
+  subscription: StripeSubscription,
   admin: AdminClient,
   eventId: string,
 ) {
@@ -114,7 +104,7 @@ async function upsertSubscriptionFromStripe(
 }
 
 async function syncCheckoutSession(
-  session: Stripe.Checkout.Session,
+  session: StripeCheckoutSession,
   admin: AdminClient,
   eventId: string,
 ) {
@@ -168,7 +158,7 @@ async function syncCheckoutSession(
   }
 }
 
-function getAccountIdFromMetadata(metadata: Stripe.Metadata | null | undefined): string | null {
+function getAccountIdFromMetadata(metadata: StripeMetadata): string | null {
   if (!metadata) return null;
   const candidate =
     metadata.supabase_account_id ??
@@ -218,7 +208,7 @@ function resolvePlanFromPrice(priceId: string | null): string {
   return "paid";
 }
 
-function metadataToJson(metadata: Stripe.Metadata | null | undefined): Record<string, string> {
+function metadataToJson(metadata: StripeMetadata): Record<string, string> {
   if (!metadata) return {};
   const out: Record<string, string> = {};
   for (const [key, value] of Object.entries(metadata)) {
@@ -228,3 +218,36 @@ function metadataToJson(metadata: Stripe.Metadata | null | undefined): Record<st
   }
   return out;
 }
+
+type StripeMetadata = Record<string, string | null | undefined> | null | undefined;
+
+type StripeEvent = {
+  id: string;
+  type: string;
+  data: {
+    object: unknown;
+  };
+};
+
+type StripeSubscription = {
+  id: string;
+  status?: string | null;
+  metadata?: StripeMetadata;
+  items?: {
+    data: Array<{
+      price?: {
+        id?: string | null;
+      } | null;
+    }>;
+  };
+  customer?: string | { id?: string | null } | null;
+  current_period_end?: number | null;
+  cancel_at_period_end?: boolean | null;
+};
+
+type StripeCheckoutSession = {
+  metadata?: StripeMetadata;
+  client_reference_id?: string | null;
+  customer?: string | { id?: string | null } | null;
+  subscription?: string | { id?: string | null } | null;
+};

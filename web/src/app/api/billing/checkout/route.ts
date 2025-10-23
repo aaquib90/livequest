@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
-import { getStripeClient } from "@/lib/stripe";
+import { stripeRequest, requireStripeSecret, StripeApiError } from "@/lib/billing/stripeEdge";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 import { createClient } from "@/lib/supabase/serverClient";
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "already_subscribed" }, { status: 409 });
     }
 
-    const stripe = getStripeClient();
+    const stripeSecret = requireStripeSecret();
     const admin = createAdminClient();
 
     const { data: existingSubscription } = await admin
@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
         : null;
 
     if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: user.email ?? undefined,
-        metadata: { supabase_account_id: user.id },
-      });
+      const customerParams = new URLSearchParams();
+      if (user.email) customerParams.set("email", user.email);
+      customerParams.set("metadata[supabase_account_id]", user.id);
+      const customer = await stripeRequest<{ id: string }>(stripeSecret, "/v1/customers", customerParams);
       stripeCustomerId = customer.id;
     }
 
@@ -60,29 +60,26 @@ export async function POST(req: NextRequest) {
       );
 
     const origin = req.nextUrl.origin;
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: stripeCustomerId,
-      client_reference_id: user.id,
-      success_url: `${origin}/account?status=checkout-success`,
-      cancel_url: `${origin}/account?status=checkout-canceled`,
-      allow_promotion_codes: true,
-      billing_address_collection: "auto",
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      subscription_data: {
-        metadata: {
-          supabase_account_id: user.id,
-        },
-      },
-      metadata: {
-        supabase_account_id: user.id,
-      },
-    });
+    const sessionParams = new URLSearchParams();
+    sessionParams.set("mode", "subscription");
+    sessionParams.set("client_reference_id", user.id);
+    sessionParams.set("success_url", `${origin}/account?status=checkout-success`);
+    sessionParams.set("cancel_url", `${origin}/account?status=checkout-canceled`);
+    sessionParams.set("allow_promotion_codes", "true");
+    sessionParams.set("billing_address_collection", "auto");
+    sessionParams.set("line_items[0][price]", priceId);
+    sessionParams.set("line_items[0][quantity]", "1");
+    sessionParams.set("subscription_data[metadata][supabase_account_id]", user.id);
+    sessionParams.set("metadata[supabase_account_id]", user.id);
+    if (stripeCustomerId) {
+      sessionParams.set("customer", stripeCustomerId);
+    }
+
+    const session = await stripeRequest<{ url?: string }>(
+      stripeSecret,
+      "/v1/checkout/sessions",
+      sessionParams,
+    );
 
     if (!session.url) {
       return NextResponse.json({ error: "session_creation_failed" }, { status: 500 });
@@ -91,9 +88,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (err) {
     console.error("stripe_checkout_error", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "server_error" },
-      { status: 500 },
-    );
+    const message = err instanceof Error ? err.message : "server_error";
+    const status = err instanceof StripeApiError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
