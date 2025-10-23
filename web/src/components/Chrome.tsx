@@ -5,6 +5,7 @@ import { CircleUserRound, Radio, Trophy } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/browserClient";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -72,6 +73,7 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle className="hidden sm:inline-flex" />
             {isAuthenticated === false ? (
               <Button
                 asChild
@@ -95,6 +97,7 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
                 </Link>
               </Button>
             ) : null}
+            <ThemeToggle className="sm:hidden" />
             <Button asChild size="sm" className="text-sm">
               <Link href="/dashboard"><Radio className="mr-2 h-4 w-4" />Go to dashboard</Link>
             </Button>

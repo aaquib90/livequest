@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 import Chrome from "@/components/Chrome";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -75,19 +77,29 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeBootstrapScript = `(function(){try{const e="livequest-theme",t=localStorage.getItem(e);if(t==="light"||t==="dark"){document.documentElement.classList.remove("light","dark");document.documentElement.classList.add(t);return}const n=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.classList.remove("light","dark");document.documentElement.classList.add(n);}catch(o){}})();`;
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={cn(
           geistSans.variable,
           geistMono.variable,
           "relative min-h-screen bg-background text-foreground antialiased"
         )}
+        suppressHydrationWarning
       >
-        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(161,161,170,0.08),_transparent_50%),radial-gradient(circle_at_bottom,_rgba(113,113,122,0.07),_transparent_50%)]" />
-        <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-12 sm:px-6 lg:px-10">
-          <Chrome>{children}</Chrome>
-        </div>
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {themeBootstrapScript}
+        </Script>
+        <ThemeProvider>
+          <div className="pointer-events-none fixed inset-0">
+            <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_top,_rgba(161,161,170,0.08),_transparent_50%),radial-gradient(circle_at_bottom,_rgba(113,113,122,0.07),_transparent_50%)] dark:block" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(14,165,233,0.12),_transparent_55%)] dark:hidden" />
+          </div>
+          <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-12 sm:px-6 lg:px-10">
+            <Chrome>{children}</Chrome>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
