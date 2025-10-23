@@ -73,8 +73,14 @@ export default function ManageTabs({
     async function refresh() {
       try {
         const [analyticsRes, sponsorsRes] = await Promise.all([
-          fetch(`/api/liveblogs/${liveblogId}/analytics`, { cache: "no-store" }),
-          fetch(`/api/liveblogs/${liveblogId}/sponsors`, { cache: "no-store" }),
+          fetch(`/api/liveblogs/${liveblogId}/analytics`, {
+            cache: "no-store",
+            credentials: "include",
+          }),
+          fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
+            cache: "no-store",
+            credentials: "include",
+          }),
         ]);
         if (!cancelled && analyticsRes.ok) {
           const json = await analyticsRes.json();
@@ -208,7 +214,10 @@ export default function ManageTabs({
             slots={sponsors}
             onRefresh={async () => {
               try {
-                const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, { cache: "no-store" });
+                const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
+                  cache: "no-store",
+                  credentials: "include",
+                });
                 if (!res.ok) return;
                 const json = await res.json();
                 if (json && Array.isArray(json.slots)) {
@@ -297,6 +306,7 @@ function Planner({ liveblogId }: { liveblogId: string }) {
         fetch(`/api/liveblogs/${liveblogId}/broadcast/discord`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ content: u.content }),
           keepalive: true,
         }).catch(() => {});
@@ -418,6 +428,7 @@ function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; 
       const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: name.trim(),
           headline: headline.trim() || null,
@@ -460,6 +471,7 @@ function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; 
     try {
       await fetch(`/api/liveblogs/${liveblogId}/sponsors/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
       await onRefresh();
     } catch {}

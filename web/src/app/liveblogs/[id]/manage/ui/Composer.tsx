@@ -217,6 +217,7 @@ export default function Composer({
           fetch(`/api/liveblogs/${liveblogId}/broadcast/discord`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ content: contentPayload }),
             keepalive: true,
           }).catch(() => {});
@@ -228,6 +229,7 @@ export default function Composer({
           fetch(`/api/liveblogs/${liveblogId}/broadcast/notify`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ payload: { title: 'New live update', body: String(text).slice(0, 140), url: `${site}/embed/${liveblogId}`, tag: `lb-${liveblogId}` } }),
             keepalive: true,
           }).catch(() => {});
@@ -341,6 +343,7 @@ export default function Composer({
           fetch(`/api/liveblogs/${liveblogId}/broadcast/discord`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ content }),
             keepalive: true,
           }).catch(() => {});
