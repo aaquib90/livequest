@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import dynamic from "next/dynamic";
 import { notFound, redirect } from "next/navigation";
 import { BarChart3, Radio, Sparkles } from "lucide-react";
 
@@ -18,15 +17,7 @@ import { createClient } from "@/lib/supabase/serverClient";
 
 import { matchTeam } from "@/lib/football/teams";
 
-const ManageTabs = dynamic(() => import("./ui/ManageTabs"), {
-  ssr: false,
-  loading: () => (
-    <div className="space-y-6">
-      <div className="h-10 w-full animate-pulse rounded-2xl bg-muted/40" />
-      <div className="h-[480px] animate-pulse rounded-3xl border border-border/60 bg-background/40" />
-    </div>
-  ),
-});
+import ManageTabsShell from "./ui/ManageTabsShell";
 
 export const runtime = "edge";
 
@@ -191,7 +182,7 @@ export default async function ManageLiveblog({
         </div>
       </section>
 
-      <ManageTabs
+      <ManageTabsShell
         liveblogId={liveblog.id}
         orderPref={orderPref}
         initialUpdates={updates || []}

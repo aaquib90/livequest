@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import dynamic from "next/dynamic";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -25,23 +24,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/serverClient";
 import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
-
-const AccountInsightsClient = dynamic(() => import("./components/AccountInsightsClient"), {
-  ssr: false,
-  loading: () => (
-    <div className="space-y-6">
-      <div className="h-28 animate-pulse rounded-3xl border border-border/60 bg-background/40" />
-      <div className="h-36 animate-pulse rounded-3xl border border-border/60 bg-background/40" />
-    </div>
-  ),
-});
-
-const SubscriptionPlanCard = dynamic(() => import("./components/SubscriptionPlanCard"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-48 animate-pulse rounded-3xl border border-border/60 bg-background/40" />
-  ),
-});
+import AccountInsightsShell from "./components/AccountInsightsShell";
+import SubscriptionPlanShell from "./components/SubscriptionPlanShell";
 
 export const runtime = "edge";
 
@@ -194,9 +178,9 @@ export default async function AccountPage({
         ) : null}
       </div>
 
-      <SubscriptionPlanCard features={features} monthlyUsage={liveblogsThisMonth || 0} />
+      <SubscriptionPlanShell features={features} monthlyUsage={liveblogsThisMonth || 0} />
 
-      <AccountInsightsClient />
+      <AccountInsightsShell />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Card className="border-border/70 bg-background/50">
