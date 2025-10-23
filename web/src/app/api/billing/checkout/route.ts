@@ -29,10 +29,9 @@ export async function POST(req: NextRequest) {
 
     const stripeSecret = requireStripeSecret();
     const admin = createAdminClient();
-    const billing = admin.schema("billing");
 
-    const { data: existingSubscription } = await billing
-      .from("subscriptions")
+    const { data: existingSubscription } = await admin
+      .from("billing_subscriptions")
       .select("stripe_customer_id")
       .eq("account_id", user.id)
       .maybeSingle();
@@ -50,8 +49,8 @@ export async function POST(req: NextRequest) {
       stripeCustomerId = customer.id;
     }
 
-    const upsertResponse = await billing
-      .from("subscriptions")
+    const upsertResponse = await admin
+      .from("billing_subscriptions")
       .upsert(
         {
           account_id: user.id,

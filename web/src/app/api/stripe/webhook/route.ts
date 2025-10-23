@@ -56,7 +56,6 @@ async function upsertSubscriptionFromStripe(
   admin: AdminClient,
   eventId: string,
 ) {
-  const billing = admin.schema("billing");
   const accountId =
     getAccountIdFromMetadata(subscription.metadata) ||
     (await lookupAccountIdBySubscription(admin, subscription.id)) ||
@@ -96,8 +95,8 @@ async function upsertSubscriptionFromStripe(
     last_event_id: eventId,
   };
 
-  const { error } = await billing
-    .from("subscriptions")
+  const { error } = await admin
+    .from("billing_subscriptions")
     .upsert(payload, { onConflict: "account_id" });
   if (error) {
     throw error;
@@ -109,7 +108,6 @@ async function syncCheckoutSession(
   admin: AdminClient,
   eventId: string,
 ) {
-  const billing = admin.schema("billing");
   const accountId =
     getAccountIdFromMetadata(session.metadata) ||
     (typeof session.client_reference_id === "string" ? session.client_reference_id : null);
@@ -135,8 +133,8 @@ async function syncCheckoutSession(
     last_event_id: eventId,
   };
 
-  const { data: updatedRows, error: updateError } = await billing
-    .from("subscriptions")
+  const { data: updatedRows, error: updateError } = await admin
+    .from("billing_subscriptions")
     .update(payload)
     .eq("account_id", accountId)
     .select("account_id");
@@ -146,8 +144,8 @@ async function syncCheckoutSession(
   }
 
   if (!updatedRows?.length) {
-    const { error: insertError } = await billing
-      .from("subscriptions")
+    const { error: insertError } = await admin
+      .from("billing_subscriptions")
       .insert({
         account_id: accountId,
         plan: "free",
@@ -177,8 +175,7 @@ async function lookupAccountIdBySubscription(
 ): Promise<string | null> {
   if (!subscriptionId) return null;
   const { data, error } = await admin
-    .schema("billing")
-    .from("subscriptions")
+    .from("billing_subscriptions")
     .select("account_id")
     .eq("stripe_subscription_id", subscriptionId)
     .maybeSingle();
@@ -193,8 +190,7 @@ async function lookupAccountIdByCustomer(
 ): Promise<string | null> {
   if (!customerId) return null;
   const { data, error } = await admin
-    .schema("billing")
-    .from("subscriptions")
+    .from("billing_subscriptions")
     .select("account_id")
     .eq("stripe_customer_id", customerId)
     .maybeSingle();
