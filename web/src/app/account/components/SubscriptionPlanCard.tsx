@@ -21,7 +21,7 @@ type SubscriptionPlanCardProps = {
 };
 
 export default function SubscriptionPlanCard({ features, monthlyUsage }: SubscriptionPlanCardProps) {
-  const [loading, setLoading] = useState<"checkout" | "portal" | null>(null);
+  const [loading, setLoading] = useState<"portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const isPaid = Boolean(features?.is_paid);
@@ -37,26 +37,6 @@ export default function SubscriptionPlanCard({ features, monthlyUsage }: Subscri
   const renewalDate = features?.current_period_end
     ? new Date(features.current_period_end).toLocaleDateString()
     : null;
-
-  async function startCheckout() {
-    try {
-      setLoading("checkout");
-      setError(null);
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        credentials: "include",
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json?.url) {
-        throw new Error(json?.error || "Unable to start checkout");
-      }
-      window.location.href = String(json.url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to start checkout");
-    } finally {
-      setLoading(null);
-    }
-  }
 
   async function openPortal() {
     try {
@@ -121,18 +101,11 @@ export default function SubscriptionPlanCard({ features, monthlyUsage }: Subscri
               Manage billing
             </Button>
           ) : (
-            <Button
-              type="button"
-              onClick={startCheckout}
-              disabled={loading === "checkout"}
-              className="bg-primary text-primary-foreground"
-            >
-              {loading === "checkout" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUpRight className="mr-2 h-4 w-4" />
-              )}
-              Upgrade to Pro
+            <Button asChild className="bg-primary text-primary-foreground">
+              <a href="https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01" target="_blank" rel="noopener noreferrer">
+                Upgrade to Pro
+                <ArrowUpRight className="ml-2 h-4 w-4" />
+              </a>
             </Button>
           )}
           <Button asChild variant="outline" size="sm" className="border-border/60">

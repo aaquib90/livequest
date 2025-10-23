@@ -291,10 +291,14 @@ export default async function DashboardPage({
                 size="lg"
                 className="border-border/70 bg-background/60 px-6"
               >
-                <Link href="/account?focus=billing">
+                <a
+                  href="https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Upgrade to Pro
                   <ArrowUpRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
             ) : null}
             <Button
