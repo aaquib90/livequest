@@ -167,6 +167,9 @@ const faqs = [
 ];
 
 export default async function Home() {
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://livequest.app").replace(/\/$/, "");
+  const logoUrl =
+    "https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(500%20x%20500%20px).svg";
   const metrics = await getMarketingMetrics();
   const uniqueViewers = integerFormatter.format(Math.max(metrics.total_unique_viewers, 0));
   const totalViews = integerFormatter.format(Math.max(metrics.total_views, 0));
@@ -174,9 +177,42 @@ export default async function Home() {
   const sponsorCtr = percentFormatter.format(Math.max(metrics.sponsor_ctr, 0));
   const sponsorImpressions = integerFormatter.format(Math.max(metrics.sponsor_impressions, 0));
   const sponsorClicks = integerFormatter.format(Math.max(metrics.sponsor_clicks, 0));
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Livequest Studio",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: siteUrl,
+    image: logoUrl,
+    description:
+      "Livequest Studio helps newsrooms, sports clubs, and creators publish live updates with analytics, sponsorship tooling, and polished embeds.",
+    offers: {
+      "@type": "Offer",
+      price: "0.00",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Livequest Studio",
+      url: siteUrl,
+      logo: logoUrl,
+    },
+    potentialAction: {
+      "@type": "JoinAction",
+      target: `${siteUrl}/signup`,
+      name: "Create a Livequest Studio account",
+    },
+  };
 
   return (
     <div className="space-y-24">
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <section className="relative overflow-hidden rounded-[36px] border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(161,161,170,0.18),_transparent_55%),radial-gradient(circle_at_bottom_right,_rgba(82,82,91,0.2),_transparent_55%),rgba(24,24,27,0.7)] px-6 py-16 shadow-[0_20px_60px_-25px_rgba(9,9,11,0.9)] sm:px-12 sm:py-20 lg:px-16">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(250,250,250,0.05),_transparent_60%)]" />
         <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center">

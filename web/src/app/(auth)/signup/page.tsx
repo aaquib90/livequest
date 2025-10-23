@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
@@ -16,6 +17,11 @@ import { FormSubmitButton } from "@/components/auth/form-submit-button";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
+
+export const metadata: Metadata = {
+  title: "Create your account",
+  description: "Sign up for Livequest Studio to publish live coverage, track analytics, and activate sponsors in minutes.",
+};
 
 async function signUpAction(formData: FormData) {
   "use server";

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, MailCheck } from "lucide-react";
 
@@ -12,6 +13,15 @@ import {
 } from "@/components/ui/card";
 
 export const runtime = "edge";
+
+export const metadata: Metadata = {
+  title: "Confirm your email",
+  description: "Check your inbox to activate your Livequest Studio account and unlock the dashboard.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function VerifySignupPage({
   searchParams,

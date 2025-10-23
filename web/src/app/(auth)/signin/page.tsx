@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, LockKeyhole, MailOpen } from "lucide-react";
@@ -16,6 +17,15 @@ import { FormSubmitButton } from "@/components/auth/form-submit-button";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Access your Livequest Studio dashboard to manage live coverage, analytics, and sponsor activations.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 async function signInAction(formData: FormData) {
   "use server";
