@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Activity, ArrowLeft, ArrowUpRight, Gauge, LineChart } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  ChartContainer,
+  type ChartConfig,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { createClient } from "@/lib/supabase/browserClient";
 import {
   fetchAccountAnalytics,
@@ -39,43 +46,10 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
   timeStyle: "short",
 });
-
-function Sparkline({ values, strokeClass }: { values: number[]; strokeClass: string }) {
-  if (!values.length) {
-    return <div className="h-24 w-full rounded-xl border border-dashed border-border/60" />;
-  }
-  const maxValue = Math.max(...values, 1);
-  const points = values.map((value, index) => {
-    const x = values.length === 1 ? 0 : (index / (values.length - 1)) * 100;
-    const verticalPadding = 8;
-    const usableHeight = 100 - verticalPadding * 2;
-    const y = 100 - verticalPadding - (value / maxValue) * usableHeight;
-    return { x, y };
-  });
-  const pathData = points
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(" ");
-  const areaData = `${pathData} L ${points[points.length - 1].x.toFixed(2)} 100 L ${points[0].x.toFixed(
-    2
-  )} 100 Z`;
-  const lastPoint = points[points.length - 1];
-
-  return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-24 w-full" aria-hidden="true">
-      <path d={areaData} className={strokeClass} fill="currentColor" fillOpacity="0.12" />
-      <path
-        d={pathData}
-        className={strokeClass}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={lastPoint.x} cy={lastPoint.y} r={2.8} className={strokeClass} fill="currentColor" />
-    </svg>
-  );
-}
+const shortDayFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
 
 export default function AnalyticsDashboardClient() {
   const router = useRouter();
@@ -140,9 +114,33 @@ export default function AnalyticsDashboardClient() {
   const sessionsPerViewer = unique30d > 0 ? sessions30d / unique30d : 0;
   const startConversion = sessions30d > 0 ? (starts30d / sessions30d) * 100 : 0;
 
-  const timeseriesValues = useMemo(
-    () => timeseries.map((row) => row.unique_viewers ?? 0),
+  const chartData = useMemo(
+    () =>
+      timeseries.map((row) => ({
+        date: row.day,
+        uniques: Number(row.unique_viewers ?? 0),
+        sessions: Number(row.sessions ?? 0),
+        starts: Number(row.starts ?? 0),
+      })),
     [timeseries]
+  );
+
+  const chartConfig = useMemo<ChartConfig>(
+    () => ({
+      uniques: {
+        label: "Unique viewers",
+        color: "#34d399",
+      },
+      sessions: {
+        label: "Sessions",
+        color: "#38bdf8",
+      },
+      starts: {
+        label: "Starts",
+        color: "#c084fc",
+      },
+    }),
+    []
   );
 
   const totalReferrerSessions = useMemo(
@@ -292,33 +290,112 @@ export default function AnalyticsDashboardClient() {
               </div>
             </div>
             <CardTitle className="text-2xl">Audience trajectory</CardTitle>
-            <CardDescription className="text-base">
-              Track how reach evolves each day to identify news cycles that resonate. Spikes can hint
-              at traffic partners worth nurturing.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Sparkline values={timeseriesValues} strokeClass="text-emerald-400" />
-            <div className="space-y-3">
-              {timeseries.slice(-7).map((row) => (
-                <div
-                  key={row.day}
-                  className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm"
-                >
-                  <span className="text-foreground">{dayFormatter.format(new Date(row.day))}</span>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Gauge className="h-3.5 w-3.5" />
-                      {integerFormatter.format(row.unique_viewers ?? 0)} viewers
-                    </span>
-                    <span>{integerFormatter.format(row.sessions ?? 0)} sessions</span>
-                    <span>{integerFormatter.format(row.starts ?? 0)} starts</span>
-                  </div>
+          <CardDescription className="text-base">
+            Track how reach evolves each day to identify news cycles that resonate. Spikes can hint
+            at traffic partners worth nurturing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {chartData.length ? (
+            <ChartContainer config={chartConfig} className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 16, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fillUniques" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--chart-uniques)" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="var(--chart-uniques)" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="fillSessions" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--chart-sessions)" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="var(--chart-sessions)" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="fillStarts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--chart-starts)" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="var(--chart-starts)" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="4 8"
+                    className="stroke-border/60"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => shortDayFormatter.format(new Date(value))}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    dy={8}
+                    minTickGap={16}
+                  />
+                  <YAxis hide domain={[0, (dataMax: number) => dataMax * 1.2]} />
+                  <ChartTooltip
+                    cursor={{ strokeDasharray: "4 4", stroke: "hsl(var(--border))" }}
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(value) =>
+                          typeof value === "string"
+                            ? dayFormatter.format(new Date(value))
+                            : value
+                        }
+                        valueFormatter={(value) =>
+                          typeof value === "number"
+                            ? integerFormatter.format(Math.max(value, 0))
+                            : value
+                        }
+                      />
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="uniques"
+                    stroke="var(--chart-uniques)"
+                    strokeWidth={2.4}
+                    fill="url(#fillUniques)"
+                    activeDot={{ r: 4 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="sessions"
+                    stroke="var(--chart-sessions)"
+                    strokeWidth={2}
+                    fill="url(#fillSessions)"
+                    activeDot={{ r: 4 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="starts"
+                    stroke="var(--chart-starts)"
+                    strokeWidth={2}
+                    fill="url(#fillStarts)"
+                    activeDot={{ r: 4 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          ) : (
+            <div className="h-24 w-full rounded-xl border border-dashed border-border/60" />
+          )}
+          <div className="space-y-3">
+            {timeseries.slice(-7).map((row) => (
+              <div
+                key={row.day}
+                className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm"
+              >
+                <span className="text-foreground">{dayFormatter.format(new Date(row.day))}</span>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Gauge className="h-3.5 w-3.5" />
+                    {integerFormatter.format(row.unique_viewers ?? 0)} viewers
+                  </span>
+                  <span>{integerFormatter.format(row.sessions ?? 0)} sessions</span>
+                  <span>{integerFormatter.format(row.starts ?? 0)} starts</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
         <Card className="border-border/70 bg-background/50">
           <CardHeader className="space-y-4">

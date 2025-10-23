@@ -11,22 +11,24 @@
     "gen:epl:players": "node ./src/scripts/generate-epl-players.cjs"
   },
   "dependencies": {
-    "web-push": "^3.6.3",
-    "heic2any": "^0.0.4",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.1",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.0",
     "@sentry/nextjs": "^10.20.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.0",
-    "@radix-ui/react-dialog": "^1.1.1",
-    "@radix-ui/react-slot": "^1.1.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "heic2any": "^0.0.4",
     "lucide-react": "^0.473.0",
     "next": "15.5.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tailwind-merge": "^2.5.5"
+    "recharts": "^2.15.4",
+    "tailwind-merge": "^2.5.5",
+    "web-push": "^3.6.3"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.6",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -34,10 +36,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
-    "@cloudflare/next-on-pages": "^1.13.6",
-    "wrangler": "^3.93.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^3.93.0"
   },
   "overrides": {
     "esbuild": "0.14.47"
