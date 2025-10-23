@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       stripeCustomerId = customer.id;
     }
 
-    await admin
+    const upsertResponse = await admin
       .from("subscriptions", { schema: "billing" })
       .upsert(
         {
@@ -57,7 +57,14 @@ export async function POST(req: NextRequest) {
           stripe_customer_id: stripeCustomerId,
         },
         { onConflict: "account_id" },
-      );
+      )
+      .select("account_id")
+      .maybeSingle();
+
+    if (upsertResponse.error) {
+      console.error("supabase_upsert_error", upsertResponse.error);
+      throw upsertResponse.error;
+    }
 
     const origin = req.nextUrl.origin;
     const sessionParams = new URLSearchParams();
