@@ -1,14 +1,15 @@
 # Livequest Studio 
 
-Livequest Studio helps newsrooms and creators cover live events with a fast editor, polished embeds, and real-time analytics. It is built with Next.js App Router, Supabase, and Tailwind CSS.
+Livequest Studio helps newsrooms and creators cover live events with a fast editor, global analytics, polished embeds, and sponsorship tooling. It is built with Next.js App Router, Supabase, and Tailwind CSS.
 
 ## Feature Overview
-- **Frictionless authoring**: Keyboard-first composer with autosave, media uploads, pinning, scheduling, and Supabase row-level security.
-- **Embeds that feel native**: Drop-in iframe or inline script (`/embed.js`) powered by SSE updates, with automatic dark/light styling and graceful polling fallback.
-- **Audience insights**: Viewer pings, session analytics, and concurrency helpers surface uniques, starts, and 24h performance right inside the studio.
-- **Team-ready controls**: Supabase authentication, Livequest privacy settings, editor access control, and Discord webhook broadcasting for updates.
-- **Sports integrations**: API-Football sync jobs, match centre templates, and fixtures API endpoints to power real-time scoreboards.
-- **Operational tooling**: Supabase migrations, cron utilities, Sentry instrumentation, and TypeScript-first components for confident iteration.
+- **Studio workspace**: Coverage, Planner, Analytics, and Sponsors tabs keep every liveblog in one place with autosave, scheduling, templating, and row-level security.
+- **Account intelligence**: `/account` surfaces active liveblogs, audience reach, sponsor performance, and referrers so you can spot trends without exporting data.
+- **Sponsorships & monetisation**: Manage reusable sponsor slots, flight windows, and real-time CTR tracking for every placement across embeds.
+- **Realtime storytelling**: Keyboard-first composer, pinning, instant media uploads, Server Actions, SSE embed feeds, and optional push notifications for subscribers.
+- **Team-ready controls**: Supabase auth, privacy modes, folder organisation, concurrency helpers, Discord broadcast webhooks, and scheduled publishing.
+- **Sports integrations**: API-Football sync jobs, match centre templates, and fixtures API endpoints to power scoreboards and pre-built match commentary.
+- **Operational tooling**: Supabase migrations, cron utilities, Sentry instrumentation, and TypeScript components for confident iteration.
 
 ## Tech Stack
 - Next.js 15 App Router with React 19, Server Actions, and incremental revalidation (`src/app`).
@@ -40,10 +41,14 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon key for public client-side operations. |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ (server only) | Service role key used by server actions that need elevated privileges (e.g. imports, scheduled publishing). |
 | `NEXT_PUBLIC_BASE_URL` | ➖ | Base URL of the deployed app (used to generate embed snippets). Set to `http://localhost:3000` for local dev. |
+| `NEXT_PUBLIC_SITE_URL` | ➖ | Canonical marketing URL used in outbound links, scheduled publish notifications, and push payloads. |
 | `APIFOOTBALL_KEY` | ➖ | API-Football key for live match ingestion endpoints. Required to run `/api/matches/sync`. |
 | `FOOTBALL_DATA_KEY` | ➖ | Optional Football-Data.org API key for alternative fixture sourcing. |
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
+| `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
+| `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |
 
 You may also want to configure Supabase storage bucket `media` (public) for image uploads.
 
@@ -79,12 +84,20 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 ## Workflows & Integrations
 
 ### Livequest Management
-- Create and organise Livequests from `/dashboard` (`src/app/dashboard/page.tsx`).
-- Each Livequest has:
-  - **Coverage** tab for the composer (`ManageTabs`, `Composer` components) with autosave, pinning, and Supabase-backed updates.
-  - **Planner** tab to review drafts and scheduled posts. Publishing triggers Discord broadcasts when enabled.
-  - **Analytics** tab that surfaces uniques, session starts, and all-time engagement (powered by `viewer_pings` and `analytics_events` tables).
-- Privacy, ordering, and template options are stored per-Livequest (`settings` column) and can be managed via the Settings dialog.
+- `/dashboard` lists every liveblog with folder filters, privacy states, and status chips so you can archive, complete, or delete coverage quickly.
+- Create new liveblogs with templates, default sponsors, and folder assignment directly from the `CreateLiveblogDialog`.
+- Each Livequest ships with four workspaces (`ManageTabs`):
+  - **Coverage**: Keyboard-first composer with autosave, pinning, sponsor assignment, and media uploads backed by Supabase storage.
+  - **Planner**: Draft, schedule, or queue updates. Publishing fires Discord broadcasts and optional push notifications.
+  - **Analytics**: Real-time uniques, starts, session concurrency, and 24h trends from `viewer_pings` and `analytics_events`.
+  - **Sponsors**: Manage reusable sponsor slots, flight windows, creative assets, and live CTR metrics.
+- Privacy, ordering, templates, and embed defaults live on each Livequest (`settings` column) and can be adjusted through the settings dialog.
+
+### Account Workspace & Global Insights
+- `/account` centralises profile preferences plus a global snapshot of your coverage footprint.
+- Account analytics aggregate across every liveblog: active vs archived counts, audience reach (7/30 day), session heartbeats, and total updates.
+- Drill into top liveblogs, referrer domains, and sponsor performance with quick links to the dedicated analytics workspace.
+- Sponsor insights roll up impressions, clicks, and CTR so you can compare partners at a glance.
 
 ### Embeds
 - The dashboard provides embed snippets via `EmbedButton`. You can choose between iframe and inline script.
@@ -97,6 +110,17 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
   - `data-order` can be `newest` or `oldest`.
 - Embeds fetch `/api/embed/:id/feed`, subscribe to `/api/embed/:id/sse`, and fall back to polling with `data-mode="native"` handled by a Shadow DOM renderer.
 - Analytics pings occur automatically via `/api/embed/:id/track` and feed into Supabase tables.
+
+### Sponsorships & Monetisation
+- Sponsor slots live on each liveblog and can be reused across coverage to keep brand assets consistent.
+- Slots support status windows (`scheduled`, `active`, `completed`), optional logos, CTA URLs, affiliate codes, and layout presets.
+- The embed tracks impressions and clicks automatically, syncing data to `sponsor_impressions` and `sponsor_clicks` for 30-day reporting.
+- Account and liveblog analytics expose CTR, impressions, and click totals so partners see performance in real time.
+
+### Push Notifications
+- Embed readers can opt into browser push notifications (service worker served from `/push-sw.js`).
+- Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` for web-push support.
+- Publishing an update triggers push payloads automatically; manual broadcasts are available via `POST /api/liveblogs/{id}/broadcast/notify`.
 
 ### Discord Broadcasts
 - Add a Discord webhook URL in the Livequest settings to mirror updates to a channel (`discord_webhook_url` inside `settings`).
@@ -124,8 +148,9 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 
 ### Analytics
 - Viewer heartbeats land in `viewer_pings` and session events in `analytics_events` (`supabase/migrations/0002_analytics.sql`).
-- Use `public.count_concurrent_viewers(Livequest_id)` (`0003_concurrent_viewers.sql`) to calculate active sessions in the last 30 seconds.
-- Analytics are surfaced on the manage page and can be extended for bespoke dashboards.
+- Use `public.count_concurrent_viewers(liveblog_id)` (`0003_concurrent_viewers.sql`) to calculate active sessions in the last 30 seconds.
+- Account-wide helpers (`account_analytics_summary`, `account_top_liveblogs`, `account_top_sponsors`, `account_top_referrers`) live in `0012_account_analytics.sql` for reporting rollups.
+- Analytics are surfaced across the manage page, account workspace, and can be extended for bespoke dashboards.
 
 ### Sentry Instrumentation
 - Sentry is optional but recommended. Supply a `SENTRY_DSN` to enable automatic tracing wrapped around database calls (`src/app/api/embed/[id]/feed/route.ts` and `src/instrumentation.ts`).

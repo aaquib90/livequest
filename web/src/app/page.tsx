@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, PenSquare, Sparkle, Wand2, Radio } from "lucide-react";
+import { ArrowRight, BadgeDollarSign, BarChart3, CalendarClock, PenSquare, Sparkle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,43 +13,43 @@ import {
 
 const features = [
   {
-    title: "Frictionless composer",
+    title: "Unified liveblog studio",
     description:
-      "Write, edit, and publish in seconds with keyboard-forward shortcuts, auto-saving, and media uploads that feel instant.",
+      "Run the Coverage, Planner, Analytics, and Sponsors tabs side by side. Autosave, templating, and scheduling are built in.",
     icon: PenSquare,
   },
   {
-    title: "Real-time presence",
+    title: "Account-wide intelligence",
     description:
-      "Collaborate with teammates, see live viewers, and push updates simultaneously without collisions or race conditions.",
-    icon: Radio,
+      "Spot audience spikes and top referrers instantly with global analytics that roll up every liveblog you own.",
+    icon: BarChart3,
   },
   {
-    title: "Elegant embeds",
+    title: "Monetise every moment",
     description:
-      "Drop the embed anywhere and it inherits your brand—responsive layouts, dark theme harmony, and SEO-friendly markup.",
-    icon: Wand2,
+      "Manage sponsor slots, flight windows, and creative assets while real-time CTR tracking keeps partners in the loop.",
+    icon: BadgeDollarSign,
   },
 ];
 
 const workflow = [
   {
-    title: "Set up your liveblog",
+    title: "Organise your coverage",
     description:
-      "Create a liveblog room, configure privacy, and generate an embed link for your CMS or site—ready in under a minute.",
-    stat: "60s setup",
+      "Spin up a liveblog, assign privacy, drop it into a folder, and pre-load templates or sponsor slots before the first whistle.",
+    stat: "Folders & statuses",
   },
   {
-    title: "Capture the moment",
+    title: "Publish with polish",
     description:
-      "Publish updates, images, and commentary from any device. Each update pings subscribers instantly and pins stay on top.",
-    stat: "Realtime updates",
+      "Compose with keyboard shortcuts, autosave, and inline media while attaching sponsor packages and Discord or push alerts.",
+    stat: "Instant delivery",
   },
   {
-    title: "Measure the impact",
+    title: "Report in one place",
     description:
-      "Viewer analytics show peak sessions, unique visits, and engagement so you can understand what resonated.",
-    stat: "Actionable data",
+      "Account analytics highlight reach, starts, referrers, and sponsor CTR so you can debrief every campaign without spreadsheets.",
+    stat: "Live analytics",
   },
 ];
 
@@ -61,10 +61,10 @@ const pricing = [
     description:
       "Perfect for solo journalists and small teams getting started with live coverage.",
     highlights: [
-      "Unlimited liveblogs",
-      "Instant embeds",
-      "Supabase authentication",
-      "Media storage via buckets",
+      "Unlimited liveblogs & folders",
+      "Account analytics workspace",
+      "Sponsor slots with CTR tracking",
+      "Discord & push broadcasts",
     ],
     cta: "Start creating",
     href: "/signup",
@@ -78,9 +78,9 @@ const pricing = [
       "Bring modern live storytelling to your newsroom with collaboration and analytics. Join the early waitlist to help shape it.",
     highlights: [
       "Multi-seat collaboration",
-      "Audience analytics dashboards",
-      "Advanced privacy controls",
-      "Priority support",
+      "Advanced analytics & exports",
+      "Role-based privacy controls",
+      "Sponsor approval workflows",
     ],
     cta: "Join the waitlist",
     href: "mailto:hello@livequest.app?subject=Newsroom%20plan%20waitlist",
@@ -90,24 +90,24 @@ const pricing = [
 
 const faqs = [
   {
+    question: "What analytics do we get out of the box?",
+    answer:
+      "Account insights track active liveblogs, reach, starts, referrers, and sponsor CTR for the last 7/30 days. Drill into any liveblog for per-update performance.",
+  },
+  {
+    question: "How do sponsor slots work?",
+    answer:
+      "Create reusable sponsor packages with logos, CTAs, flight windows, and affiliate codes. Impressions and clicks are captured automatically across embeds.",
+  },
+  {
     question: "Can we customise the embed to match our brand?",
     answer:
       "Yes—embeds inherit your typography and palette automatically. For fully bespoke styling, add a small CSS block targeting data-liveblog attributes.",
   },
   {
-    question: "How do we moderate or retract updates?",
+    question: "Can viewers opt in to notifications?",
     answer:
-      "Every update can be pinned, unpinned, or soft-deleted. Draft workflows are on our roadmap; today you can keep updates private until published.",
-  },
-  {
-    question: "Is there an API for automations?",
-    answer:
-      "The Supabase backend exposes REST and realtime APIs. For bespoke workflows we recommend using edge functions or webhooks subscribed to update events.",
-  },
-  {
-    question: "Do you support teams working in multiple languages?",
-    answer:
-      "Absolutely. Content is UTF-8 safe, and you can localise embeds or duplicate liveblogs per locale while retaining analytics.",
+      "Once you add VAPID keys, embeds ship with a push bell so readers can opt in. Publishing fires notifications automatically, and you can broadcast manually if needed.",
   },
 ];
 
@@ -119,15 +119,13 @@ export default function Home() {
         <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center">
           <Badge className="mb-6" variant="muted">
             <Sparkle className="mr-1 h-3.5 w-3.5" />
-            Introducing the zinc interface
+            Account analytics & sponsor insights
           </Badge>
           <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Broadcast live moments with newsroom polish.
+            Broadcast live moments with data your newsroom trusts.
           </h1>
           <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-            Livequest Studio streamlines rapid-fire coverage with a refined editor,
-            cinematic embeds, and built-in analytics. Perfect for sports,
-            culture, tech events, and beyond.
+            Livequest Studio unifies rapid-fire coverage, account-wide analytics, and sponsor tooling in one workspace—perfect for sports, culture, tech events, and beyond.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg" className="px-8">
@@ -147,21 +145,21 @@ export default function Home() {
           </div>
           <div className="mt-12 grid w-full gap-6 text-left sm:grid-cols-3">
             <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Average time to publish</p>
+              <p className="text-sm text-muted-foreground">Active liveblogs this week</p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
-                14 seconds
+                68
               </p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Embeds served last month</p>
+              <p className="text-sm text-muted-foreground">Sponsor CTR tracked</p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
-                2.4 million
+                3.2%
               </p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Customer satisfaction</p>
+              <p className="text-sm text-muted-foreground">Folders keeping coverage tidy</p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
-                97% CSAT
+                24
               </p>
             </div>
           </div>
