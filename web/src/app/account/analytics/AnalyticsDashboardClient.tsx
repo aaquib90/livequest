@@ -2,13 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Activity,
-  ArrowLeft,
-  ArrowUpRight,
-  Gauge,
-  LineChart,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Activity, ArrowLeft, ArrowUpRight, Gauge, LineChart } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,70 +14,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-type AnalyticsSummaryRow = {
-  total_liveblogs: number;
-  active_liveblogs: number;
-  archived_liveblogs: number;
-  unique_viewers_7d: number;
-  unique_viewers_30d: number;
-  session_pings_7d: number;
-  session_pings_30d: number;
-  starts_7d: number;
-  starts_30d: number;
-  total_updates: number;
-  sponsor_impressions_30d: number;
-  sponsor_clicks_30d: number;
-  sponsor_ctr_30d: string | number;
-};
-
-type TopLiveblogRow = {
-  liveblog_id: string;
-  liveblog_title: string | null;
-  status: string | null;
-  unique_viewers: number;
-  starts: number;
-  updates_published: number;
-  last_published_at: string | null;
-};
-
-type SponsorLeaderboardRow = {
-  slot_id: string;
-  sponsor_name: string | null;
-  liveblog_id: string;
-  liveblog_title: string | null;
-  status: string | null;
-  impressions: number;
-  clicks: number;
-  ctr: string | number;
-};
-
-type ReferrerRow = {
-  referrer: string | null;
-  sessions: number;
-  unique_viewers: number;
-};
-
-type TimeseriesRow = {
-  day: string;
-  unique_viewers: number;
-  sessions: number;
-  starts: number;
-};
-
-type ApiResponse = {
-  summary: AnalyticsSummaryRow | null;
-  topLiveblogs: TopLiveblogRow[];
-  topSponsors: SponsorLeaderboardRow[];
-  referrers: ReferrerRow[];
-  timeseries: TimeseriesRow[];
-  totals: {
-    totalLiveblogs: number;
-    activeLiveblogs: number;
-    archivedLiveblogs: number;
-    uniqueFolders: number;
-  };
-};
+import { createClient } from "@/lib/supabase/browserClient";
+import {
+  fetchAccountAnalytics,
+  type AccountAnalyticsResult,
+} from "../lib/fetchAccountAnalytics";
 
 const integerFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 0,
@@ -142,7 +78,9 @@ function Sparkline({ values, strokeClass }: { values: number[]; strokeClass: str
 }
 
 export default function AnalyticsDashboardClient() {
-  const [data, setData] = useState<ApiResponse | null>(null);
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  const [data, setData] = useState<AccountAnalyticsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,19 +90,25 @@ export default function AnalyticsDashboardClient() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/account/analytics");
-        if (!response.ok) {
-          if (response.status === 401) {
-            setError("You need to be signed in to view workspace analytics.");
-          } else {
-            const json = await response.json().catch(() => ({}));
-            setError(json?.error || "Unable to load analytics at this time.");
-          }
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user) {
+          if (active) router.replace("/signin");
           return;
         }
-        const json = (await response.json()) as ApiResponse;
+
+        const analytics = await fetchAccountAnalytics(supabase, {
+          userId: session.user.id,
+          topLiveblogsLimit: 10,
+          topSponsorsLimit: 8,
+          topReferrersLimit: 8,
+          includeTimeseries: true,
+          timeseriesDays: 14,
+        });
+
         if (active) {
-          setData(json);
+          setData(analytics);
         }
       } catch (err) {
         if (active) {
@@ -176,17 +120,18 @@ export default function AnalyticsDashboardClient() {
         }
       }
     }
+
     load();
     return () => {
       active = false;
     };
-  }, []);
+  }, [router, supabase]);
 
   const summary = data?.summary ?? null;
   const topLiveblogs = data?.topLiveblogs ?? [];
   const sponsors = data?.topSponsors ?? [];
-  const referrers = useMemo(() => data?.referrers ?? [], [data?.referrers]);
-  const timeseries = useMemo(() => data?.timeseries ?? [], [data?.timeseries]);
+  const referrers = useMemo(() => data?.referrers ?? [], [data]);
+  const timeseries = useMemo(() => data?.timeseries ?? [], [data]);
 
   const sponsorCtr = summary?.sponsor_ctr_30d ? Number(summary.sponsor_ctr_30d) : 0;
   const unique30d = summary?.unique_viewers_30d ?? 0;
@@ -281,7 +226,7 @@ export default function AnalyticsDashboardClient() {
               {integerFormatter.format(unique30d)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {integerFormatter.format(summary?.unique_viewers_7d ?? 0)} in the last 7 days.
+              {integerFormatter.format(summary.unique_viewers_7d ?? 0)} in the last 7 days.
             </p>
           </CardContent>
         </Card>
@@ -327,8 +272,8 @@ export default function AnalyticsDashboardClient() {
               {percentFormatter.format(sponsorCtr)}%
             </p>
             <p className="text-xs text-muted-foreground">
-              {integerFormatter.format(summary?.sponsor_impressions_30d ?? 0)} impressions ·{" "}
-              {integerFormatter.format(summary?.sponsor_clicks_30d ?? 0)} clicks
+              {integerFormatter.format(summary.sponsor_impressions_30d ?? 0)} impressions ·{' '}
+              {integerFormatter.format(summary.sponsor_clicks_30d ?? 0)} clicks
             </p>
           </CardContent>
         </Card>
@@ -417,7 +362,7 @@ export default function AnalyticsDashboardClient() {
                 <span className="text-xs text-muted-foreground">All time</span>
               </div>
               <p className="mt-2 text-3xl font-semibold text-foreground">
-                {integerFormatter.format(summary?.total_updates ?? 0)}
+                {integerFormatter.format(summary.total_updates ?? 0)}
               </p>
               <p className="text-xs text-muted-foreground">
                 Use this as a guardrail for newsroom output across formats and beats.
@@ -450,7 +395,7 @@ export default function AnalyticsDashboardClient() {
                       {lb.liveblog_title || "Untitled liveblog"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Last published{" "}
+                      Last published{' '}
                       {lb.last_published_at
                         ? dateTimeFormatter.format(new Date(lb.last_published_at))
                         : "—"}
@@ -571,7 +516,7 @@ export default function AnalyticsDashboardClient() {
                     <div className="flex items-center justify-between text-sm">
                       <p className="font-medium text-foreground">{label}</p>
                       <span className="text-xs text-muted-foreground">
-                        {integerFormatter.format(viewerCount)} viewers ·{" "}
+                        {integerFormatter.format(viewerCount)} viewers ·{' '}
                         {integerFormatter.format(sessionCount)} sessions
                       </span>
                     </div>
@@ -624,7 +569,7 @@ export default function AnalyticsDashboardClient() {
             <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
               <p className="text-sm font-medium text-foreground">Supabase access</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Query tables like <code className="font-mono text-xs">viewer_pings</code> and{" "}
+                Query tables like <code className="font-mono text-xs">viewer_pings</code> and{' '}
                 <code className="font-mono text-xs">analytics_events</code> directly with SQL for bespoke
                 dashboards.
               </p>

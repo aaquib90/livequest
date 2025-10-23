@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, Folder, Gauge } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,68 +14,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-type AnalyticsSummaryRow = {
-  total_liveblogs: number;
-  active_liveblogs: number;
-  archived_liveblogs: number;
-  unique_viewers_7d: number;
-  unique_viewers_30d: number;
-  session_pings_7d: number;
-  session_pings_30d: number;
-  starts_7d: number;
-  starts_30d: number;
-  total_updates: number;
-  sponsor_impressions_30d: number;
-  sponsor_clicks_30d: number;
-  sponsor_ctr_30d: string | number;
-};
-
-type TopLiveblogRow = {
-  liveblog_id: string;
-  liveblog_title: string | null;
-  status: string | null;
-  unique_viewers: number;
-  starts: number;
-  updates_published: number;
-  last_published_at: string | null;
-};
-
-type SponsorLeaderboardRow = {
-  slot_id: string;
-  sponsor_name: string | null;
-  liveblog_id: string;
-  liveblog_title: string | null;
-  status: string | null;
-  impressions: number;
-  clicks: number;
-  ctr: string | number;
-};
-
-type ReferrerRow = {
-  referrer: string | null;
-  sessions: number;
-  unique_viewers: number;
-};
-
-type ApiResponse = {
-  summary: AnalyticsSummaryRow | null;
-  topLiveblogs: TopLiveblogRow[];
-  topSponsors: SponsorLeaderboardRow[];
-  referrers: ReferrerRow[];
-  timeseries: Array<{
-    day: string;
-    unique_viewers: number;
-    sessions: number;
-    starts: number;
-  }>;
-  totals: {
-    totalLiveblogs: number;
-    activeLiveblogs: number;
-    archivedLiveblogs: number;
-    uniqueFolders: number;
-  };
-};
+import { createClient } from "@/lib/supabase/browserClient";
+import {
+  fetchAccountAnalytics,
+  type AccountAnalyticsResult,
+} from "../lib/fetchAccountAnalytics";
 
 const integerFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 0,
@@ -91,7 +35,9 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 export default function AccountInsightsClient() {
-  const [data, setData] = useState<ApiResponse | null>(null);
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  const [data, setData] = useState<AccountAnalyticsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,22 +47,26 @@ export default function AccountInsightsClient() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/account/analytics", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            setError("You need to be signed in to view account analytics.");
-          } else {
-            const json = await response.json().catch(() => ({}));
-            setError(json?.error || "Unable to load analytics at this time.");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user) {
+          if (isMounted) {
+            router.replace("/signin");
           }
           return;
         }
-        const json = (await response.json()) as ApiResponse;
+
+        const analytics = await fetchAccountAnalytics(supabase, {
+          userId: session.user.id,
+          topLiveblogsLimit: 3,
+          topSponsorsLimit: 4,
+          topReferrersLimit: 4,
+          includeTimeseries: false,
+        });
+
         if (isMounted) {
-          setData(json);
+          setData(analytics);
         }
       } catch (err) {
         if (isMounted) {
@@ -132,13 +82,13 @@ export default function AccountInsightsClient() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [router, supabase]);
 
   const summary = data?.summary ?? null;
   const totals = data?.totals;
   const topLiveblogs = data?.topLiveblogs ?? [];
   const topSponsors = data?.topSponsors ?? [];
-  const referrers = useMemo(() => data?.referrers ?? [], [data?.referrers]);
+  const referrers = useMemo(() => data?.referrers ?? [], [data]);
   const totalReferrerUniques = useMemo(
     () => referrers.reduce((sum, row) => sum + Number(row?.unique_viewers ?? 0), 0),
     [referrers]
