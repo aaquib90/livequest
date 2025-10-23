@@ -99,7 +99,7 @@ export default function EmbedClient({
   const [reactionCounts, setReactionCounts] = useState<Record<string, { smile: number; heart: number; thumbs_up: number }>>({});
   const [reactionActive, setReactionActive] = useState<Record<string, { smile: boolean; heart: boolean; thumbs_up: boolean }>>({});
   const [sponsors, setSponsors] = useState<SponsorSlot[]>([]);
-  const sponsorSeenRef = useRef<Set<string>>(new Set());
+  const sponsorImpressionsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     // Ensure a stable per-device id (scoped to origin)
@@ -217,20 +217,9 @@ export default function EmbedClient({
     };
   }, [analyticsMode, sessionId, trackEvent]);
 
-  useEffect(() => {
-    if (!sessionId || analyticsMode === "pending" || !sponsors.length) return;
-    sponsors.forEach((slot) => {
-      if (!slot || !slot.id) return;
-      if (sponsorSeenRef.current.has(slot.id)) return;
-      sponsorSeenRef.current.add(slot.id);
-      recordSponsorImpression(slot);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sponsors, sessionId, analyticsMode]);
-
-  function recordSponsorImpression(slot: SponsorSlot) {
+  function recordSponsorImpression(slot: SponsorSlot, updateId?: string) {
     if (!slot?.id) return;
-    trackEvent("sponsor_impression", { slotId: slot.id });
+    trackEvent("sponsor_impression", { slotId: slot.id, updateId });
     if (!sessionId) return;
     try {
       fetch(`/api/embed/${liveblogId}/sponsors/track`, {
@@ -430,8 +419,26 @@ export default function EmbedClient({
     });
   }, [updates, order]);
 
-  const sponsorPinned = useMemo(() => sponsors.filter((slot) => slot?.pinned), [sponsors]);
-  const sponsorInline = useMemo(() => sponsors.filter((slot) => !slot?.pinned), [sponsors]);
+  const sponsorMap = useMemo(() => {
+    const map = new Map<string, SponsorSlot>();
+    sponsors.forEach((slot) => {
+      if (slot?.id) map.set(slot.id, slot);
+    });
+    return map;
+  }, [sponsors]);
+
+  useEffect(() => {
+    if (!sessionId || analyticsMode === "pending") return;
+    sorted.forEach((update) => {
+      if (!isSponsoredContent(update.content)) return;
+      const slot = resolveContentSponsor(update.content, sponsorMap, sponsors);
+      if (!slot?.id) return;
+      const key = `${slot.id}:${update.id}`;
+      if (sponsorImpressionsRef.current.has(key)) return;
+      sponsorImpressionsRef.current.add(key);
+      recordSponsorImpression(slot, update.id);
+    });
+  }, [sorted, sessionId, analyticsMode, sponsorMap, sponsors]);
 
   return (
     <div className="space-y-4 pb-6">
@@ -451,27 +458,6 @@ export default function EmbedClient({
           <span className="text-[11px] text-muted-foreground">Notifications unavailable</span>
         )}
       </div>
-      {sponsorPinned.map((slot) => (
-        <SponsorCard
-          key={`sponsor-${slot.id}`}
-          slot={slot}
-          pinned
-          onClick={(s, url) => {
-            if (url) recordSponsorClick(s, url);
-          }}
-        />
-      ))}
-      {sponsorInline.length
-        ? sponsorInline.map((slot) => (
-            <SponsorCard
-              key={`sponsor-inline-${slot.id}`}
-              slot={slot}
-              onClick={(s, url) => {
-                if (url) recordSponsorClick(s, url);
-              }}
-            />
-          ))
-        : null}
       {sorted.map((u) => {
         const textContent = isTextContent(u.content) ? u.content : null;
         const eventKey =
@@ -480,6 +466,7 @@ export default function EmbedClient({
             : undefined;
         const isNew = newIds.has(u.id);
         const isSponsored = isSponsoredContent(u.content);
+        const sponsorSlot = isSponsored ? resolveContentSponsor(u.content, sponsorMap, sponsors) : null;
         return (
         <article
           key={u.id}
@@ -512,6 +499,14 @@ export default function EmbedClient({
                   </span>
                 ) : null}
               </div>
+            ) : null}
+            {isSponsored && sponsorSlot ? (
+              <SponsorInline
+                slot={sponsorSlot}
+                onClick={(slot, url) => {
+                  if (url) recordSponsorClick(slot, url);
+                }}
+              />
             ) : null}
             {eventKey ? (
               <FootballEventBanner
@@ -895,48 +890,30 @@ function isSponsoredContent(content: UpdateContent): boolean {
   return false;
 }
 
-function SponsorCard({ slot, pinned, onClick }: { slot: SponsorSlot; pinned?: boolean; onClick: (slot: SponsorSlot, targetUrl: string | null) => void }) {
-  const imageUrl = slot.image_url || null;
+function SponsorInline({ slot, onClick }: { slot: SponsorSlot; onClick: (slot: SponsorSlot, targetUrl: string | null) => void }) {
   const targetUrl = resolveSponsorUrl(slot);
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-3xl border border-border/60 bg-background/70 p-5",
-        pinned ? "border-amber-400/60 bg-gradient-to-br from-amber-500/10 to-background/90" : "",
-      )}
-    >
-      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.26em] text-muted-foreground">
-        <span className="inline-flex items-center gap-2">
-          <span className="inline-flex h-6 items-center justify-center rounded-full border border-border/60 px-2 text-[10px] font-semibold uppercase tracking-[0.32em]">Sponsored</span>
-          <span className="text-[10px] font-semibold text-foreground/80 tracking-[0.28em]">{slot.name}</span>
-        </span>
-        {pinned ? <span className="text-[10px] font-semibold text-amber-200">Pinned</span> : null}
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 text-xs">
+      <div className="flex items-center gap-3">
+        {slot.image_url ? (
+          <img src={slot.image_url} alt="" className="h-8 w-8 rounded-lg border border-border/60 object-cover" loading="lazy" />
+        ) : null}
+        <div className="leading-tight">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">{slot.name}</p>
+          {slot.headline ? <p className="text-sm font-semibold text-foreground">{slot.headline}</p> : null}
+        </div>
       </div>
-      <div className="mt-3 space-y-3">
-        {slot.headline ? (
-          <h3 className="text-lg font-semibold text-foreground">{slot.headline}</h3>
-        ) : null}
-        {slot.description ? (
-          <p className="text-sm text-muted-foreground">{slot.description}</p>
-        ) : null}
-        {imageUrl ? (
-          <div className="overflow-hidden rounded-2xl border border-border/60">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt="" className="h-auto w-full object-cover" loading="lazy" />
-          </div>
-        ) : null}
-        {targetUrl && slot.cta_text ? (
-          <a
-            href={targetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => onClick(slot, targetUrl)}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90"
-          >
-            {slot.cta_text}
-          </a>
-        ) : null}
-      </div>
+      {targetUrl && slot.cta_text ? (
+        <a
+          href={targetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onClick(slot, targetUrl)}
+          className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+        >
+          {slot.cta_text}
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -952,4 +929,13 @@ function resolveSponsorUrl(slot: SponsorSlot): string | null {
   } catch {
     return slot.cta_url;
   }
+}
+
+function resolveContentSponsor(content: UpdateContent, sponsorMap: Map<string, SponsorSlot>, sponsors: SponsorSlot[]): SponsorSlot | null {
+  if (!content || typeof content !== "object") return null;
+  const slotId = (content as any).sponsor_slot_id;
+  if (typeof slotId === "string" && sponsorMap.has(slotId)) {
+    return sponsorMap.get(slotId)!;
+  }
+  return sponsors.length ? sponsors[0] : null;
 }
