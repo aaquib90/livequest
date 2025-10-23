@@ -30,8 +30,9 @@ export async function stripeRequest<T>(
     headers: {
       Authorization: `Bearer ${secretKey}`,
       "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
     },
-    body: params,
+    body: params.toString(),
     ...init,
   });
 
@@ -114,4 +115,3 @@ export async function verifyStripeSignature(payload: string, signatureHeader: st
     throw new Error("stripe_signature_verification_failed");
   }
 }
-
