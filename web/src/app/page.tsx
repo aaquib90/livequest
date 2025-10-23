@@ -111,36 +111,36 @@ const workflow = [
 
 const pricing = [
   {
-    name: "Creator",
+    name: "Free",
     price: "$0",
     frequency: "per month",
     description:
-      "Perfect for solo journalists and small teams getting started with live coverage.",
+      "Launch live coverage with core analytics, notifications, and folders. Ideal for creators testing the waters.",
     highlights: [
-      "Unlimited liveblogs & folders",
-      "Account analytics workspace",
-      "Sponsor slots with CTR tracking",
-      "Discord & push broadcasts",
+      "Up to 10 liveblogs each month",
+      "Account summary analytics",
+      "Discord & push notifications",
+      "Community support",
     ],
-    cta: "Start creating",
+    cta: "Start free",
     href: "/signup",
-    featured: true,
   },
   {
-    name: "Newsroom",
-    price: "Coming soon",
-    frequency: "",
+    name: "Pro",
+    price: "$3.99",
+    frequency: "per month",
     description:
-      "Bring modern live storytelling to your newsroom with collaboration and analytics. Join the early waitlist to help shape it.",
+      "Unlimited coverage, sponsor tooling, and exportable analytics for teams who live inside the action.",
     highlights: [
-      "Multi-seat collaboration",
-      "Advanced analytics & exports",
-      "Role-based privacy controls",
-      "Sponsor approval workflows",
+      "Unlimited liveblogs & storage",
+      "Full sponsor management suite",
+      "Editor invites & collaboration",
+      "Downloadable analytics & webhooks",
     ],
-    cta: "Join the waitlist",
-    href: "mailto:hello@livequest.app?subject=Newsroom%20plan%20waitlist",
-    comingSoon: true,
+    cta: "Upgrade to Pro",
+    href: "https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01",
+    featured: true,
+    external: true,
   },
 ];
 
@@ -319,7 +319,7 @@ export default async function Home() {
             </h2>
           </div>
           <p className="max-w-xl text-base text-muted-foreground">
-            Launch your first liveblog today with the creator plan. Our collaborative newsroom tier is in development—join the waitlist and we&apos;ll reach out as soon as it&apos;s ready.
+            Start free with essential tooling, or step up to Pro for unlimited liveblogs, sponsor workflows, and deeper reporting.
           </p>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -386,9 +386,15 @@ export default async function Home() {
                   className="w-full"
                   size="lg"
                 >
-                  <Link href={tier.href}>
-                    {tier.cta}
-                  </Link>
+                  {tier.external ? (
+                    <a href={tier.href} target="_blank" rel="noopener noreferrer">
+                      {tier.cta}
+                    </a>
+                  ) : (
+                    <Link href={tier.href}>
+                      {tier.cta}
+                    </Link>
+                  )}
                 </Button>
               </CardContent>
             </Card>

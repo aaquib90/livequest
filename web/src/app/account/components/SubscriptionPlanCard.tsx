@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight, Loader2, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +14,19 @@ import {
 } from "@/components/ui/card";
 
 import type { AccountFeatures } from "@/lib/billing/types";
+import { createClient } from "@/lib/supabase/browserClient";
 
 type SubscriptionPlanCardProps = {
   features: AccountFeatures | null;
   monthlyUsage: number;
 };
 
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01";
+
 export default function SubscriptionPlanCard({ features, monthlyUsage }: SubscriptionPlanCardProps) {
   const [loading, setLoading] = useState<"portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const isPaid = Boolean(features?.is_paid);
   const planName = isPaid ? "Pro" : "Free";
@@ -37,6 +41,25 @@ export default function SubscriptionPlanCard({ features, monthlyUsage }: Subscri
   const renewalDate = features?.current_period_end
     ? new Date(features.current_period_end).toLocaleDateString()
     : null;
+
+  useEffect(() => {
+    let isMounted = true;
+    const supabase = createClient();
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!isMounted) return;
+        const email = data.user?.email;
+        setUserEmail(typeof email === "string" && email.length ? email : null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setUserEmail(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function openPortal() {
     try {
@@ -57,6 +80,10 @@ export default function SubscriptionPlanCard({ features, monthlyUsage }: Subscri
       setLoading(null);
     }
   }
+
+  const upgradeHref = userEmail
+    ? `${STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(userEmail)}`
+    : STRIPE_PAYMENT_LINK;
 
   return (
     <Card className="border-border/70 bg-background/60">
@@ -102,14 +129,14 @@ export default function SubscriptionPlanCard({ features, monthlyUsage }: Subscri
             </Button>
           ) : (
             <Button asChild className="bg-primary text-primary-foreground">
-              <a href="https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01" target="_blank" rel="noopener noreferrer">
+              <a href={upgradeHref} target="_blank" rel="noopener noreferrer">
                 Upgrade to Pro
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </a>
             </Button>
           )}
           <Button asChild variant="outline" size="sm" className="border-border/60">
-            <a href="/pricing" className="inline-flex items-center gap-2">
+            <a href="https://livequest.app/#pricing" className="inline-flex items-center gap-2">
               See features
               <ArrowUpRight className="h-4 w-4" />
             </a>
