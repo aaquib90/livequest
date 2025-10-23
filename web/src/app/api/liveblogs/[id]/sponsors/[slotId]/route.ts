@@ -4,7 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { canManageSponsors, fetchAccountFeaturesForAccount } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/serverClient";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 type AccessCheckResult = {
   supabase: Awaited<ReturnType<typeof createClient>>;

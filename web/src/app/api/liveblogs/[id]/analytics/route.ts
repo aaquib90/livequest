@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { fetchAccountFeaturesForAccount, isPaidAccount } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/serverClient";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 type AccessCheck = {
   allowed: boolean;

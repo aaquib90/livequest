@@ -5,7 +5,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 import { createClient } from "@/lib/supabase/serverClient";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   try {
@@ -97,4 +97,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

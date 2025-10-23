@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripeClient } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/adminClient";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
