@@ -10,6 +10,53 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createAdminClient } from "@/lib/supabase/adminClient";
+
+export const revalidate = 1800;
+
+type MarketingMetrics = {
+  total_unique_viewers: number;
+  total_views: number;
+  total_interactions: number;
+  sponsor_impressions: number;
+  sponsor_clicks: number;
+  sponsor_ctr: number;
+};
+
+const integerFormatter = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 0,
+});
+
+const percentFormatter = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 1,
+});
+
+async function getMarketingMetrics(): Promise<MarketingMetrics> {
+  const supabase = createAdminClient();
+  try {
+    const { data, error } = await supabase.rpc("marketing_metrics").single();
+    if (error) throw error;
+    return {
+      total_unique_viewers: Number(data?.total_unique_viewers ?? 0),
+      total_views: Number(data?.total_views ?? 0),
+      total_interactions: Number(data?.total_interactions ?? 0),
+      sponsor_impressions: Number(data?.sponsor_impressions ?? 0),
+      sponsor_clicks: Number(data?.sponsor_clicks ?? 0),
+      sponsor_ctr: Number(data?.sponsor_ctr ?? 0),
+    };
+  } catch (err) {
+    console.error("Failed to load marketing metrics", err);
+    return {
+      total_unique_viewers: 0,
+      total_views: 0,
+      total_interactions: 0,
+      sponsor_impressions: 0,
+      sponsor_clicks: 0,
+      sponsor_ctr: 0,
+    };
+  }
+}
 
 const features = [
   {
@@ -111,7 +158,15 @@ const faqs = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const metrics = await getMarketingMetrics();
+  const uniqueViewers = integerFormatter.format(Math.max(metrics.total_unique_viewers, 0));
+  const totalViews = integerFormatter.format(Math.max(metrics.total_views, 0));
+  const totalInteractions = integerFormatter.format(Math.max(metrics.total_interactions, 0));
+  const sponsorCtr = percentFormatter.format(Math.max(metrics.sponsor_ctr, 0));
+  const sponsorImpressions = integerFormatter.format(Math.max(metrics.sponsor_impressions, 0));
+  const sponsorClicks = integerFormatter.format(Math.max(metrics.sponsor_clicks, 0));
+
   return (
     <div className="space-y-24">
       <section className="relative overflow-hidden rounded-[36px] border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(161,161,170,0.18),_transparent_55%),radial-gradient(circle_at_bottom_right,_rgba(82,82,91,0.2),_transparent_55%),rgba(24,24,27,0.7)] px-6 py-16 shadow-[0_20px_60px_-25px_rgba(9,9,11,0.9)] sm:px-12 sm:py-20 lg:px-16">
@@ -145,21 +200,20 @@ export default function Home() {
           </div>
           <div className="mt-12 grid w-full gap-6 text-left sm:grid-cols-3">
             <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Active liveblogs this week</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">
-                68
-              </p>
+              <p className="text-sm text-muted-foreground">Total unique viewers</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{uniqueViewers}</p>
+              <p className="text-xs text-muted-foreground">{totalViews} total views recorded</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Sponsor CTR tracked</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">
-                3.2%
-              </p>
+              <p className="text-sm text-muted-foreground">Interactions captured</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{totalInteractions}</p>
+              <p className="text-xs text-muted-foreground">Starts, reactions, and sponsor activity</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Folders keeping coverage tidy</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">
-                24
+              <p className="text-sm text-muted-foreground">Sponsor CTR</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{sponsorCtr}</p>
+              <p className="text-xs text-muted-foreground">
+                {sponsorImpressions} impressions · {sponsorClicks} clicks
               </p>
             </div>
           </div>
