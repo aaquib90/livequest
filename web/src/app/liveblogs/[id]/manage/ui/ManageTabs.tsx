@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, BarChart3, Radio, Users, Clock, Send, Trash2, Upload, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,10 @@ export default function ManageTabs({
     ends_at: string | null;
     impressions: number;
     clicks: number;
+    impressions24h: number;
+    clicks24h: number;
+    ctr: number;
+    ctr24h: number;
   }>>([]);
 
   useEffect(() => {
@@ -85,6 +89,10 @@ export default function ManageTabs({
                 ends_at: slot.ends_at ?? null,
                 impressions: Number(slot.impressions ?? 0),
                 clicks: Number(slot.clicks ?? 0),
+                impressions24h: Number(slot.impressions24h ?? 0),
+                clicks24h: Number(slot.clicks24h ?? 0),
+                ctr: Number(slot.ctr ?? 0),
+                ctr24h: Number(slot.ctr24h ?? 0),
               })),
             );
           }
@@ -186,29 +194,33 @@ export default function ManageTabs({
             </Card>
         </div>
       ) : (
-        <SponsorManager
-          liveblogId={liveblogId}
-          slots={sponsors}
-          onRefresh={async () => {
-            try {
-              const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, { cache: "no-store" });
-              if (!res.ok) return;
-              const json = await res.json();
-              if (json && Array.isArray(json.slots)) {
-                setSponsors(
-                  (json.slots as any[]).map((slot) => ({
-                    id: String(slot.id),
-                    name: String(slot.name ?? ""),
-                    status: String(slot.status ?? "scheduled"),
-                    starts_at: slot.starts_at ?? null,
-                    ends_at: slot.ends_at ?? null,
-                    impressions: Number(slot.impressions ?? 0),
-                    clicks: Number(slot.clicks ?? 0),
-                  })),
-                );
-              }
-            } catch {}
-          }}
+          <SponsorManager
+            liveblogId={liveblogId}
+            slots={sponsors}
+            onRefresh={async () => {
+              try {
+                const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, { cache: "no-store" });
+                if (!res.ok) return;
+                const json = await res.json();
+                if (json && Array.isArray(json.slots)) {
+                  setSponsors(
+                    (json.slots as any[]).map((slot) => ({
+                      id: String(slot.id),
+                      name: String(slot.name ?? ""),
+                      status: String(slot.status ?? "scheduled"),
+                      starts_at: slot.starts_at ?? null,
+                      ends_at: slot.ends_at ?? null,
+                      impressions: Number(slot.impressions ?? 0),
+                      clicks: Number(slot.clicks ?? 0),
+                      impressions24h: Number(slot.impressions24h ?? 0),
+                      clicks24h: Number(slot.clicks24h ?? 0),
+                      ctr: Number(slot.ctr ?? 0),
+                      ctr24h: Number(slot.ctr24h ?? 0),
+                    })),
+                  );
+                }
+              } catch {}
+            }}
         />
       )}
     </div>
@@ -238,7 +250,7 @@ function AnalyticsStat({ icon, label, value }: { icon: React.ReactNode; label: s
 }
 
 function Planner({ liveblogId }: { liveblogId: string }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [items, setItems] = useState<Array<{
     id: string;
     content: any;
@@ -340,7 +352,7 @@ function Planner({ liveblogId }: { liveblogId: string }) {
   );
 }
 
-function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; slots: Array<{ id: string; name: string; status: string; starts_at: string | null; ends_at: string | null; impressions: number; clicks: number }>; onRefresh: () => Promise<void> | void }) {
+function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; slots: Array<{ id: string; name: string; status: string; starts_at: string | null; ends_at: string | null; impressions: number; clicks: number; impressions24h: number; clicks24h: number; ctr: number; ctr24h: number }>; onRefresh: () => Promise<void> | void }) {
   const supabase = createClient();
   const [name, setName] = useState("");
   const [headline, setHeadline] = useState("");
@@ -588,22 +600,38 @@ function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; 
         <CardContent className="space-y-3">
           {slots.length ? (
             slots.map((slot) => (
-              <div key={slot.id} className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{slot.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {slot.status}
-                    {slot.starts_at ? ` · Starts ${new Date(slot.starts_at).toLocaleString()}` : ""}
-                    {slot.ends_at ? ` · Ends ${new Date(slot.ends_at).toLocaleString()}` : ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Impressions: <span className="font-semibold text-foreground">{slot.impressions}</span> · Clicks: <span className="font-semibold text-foreground">{slot.clicks}</span>
-                  </p>
+              <div key={slot.id} className="space-y-2 rounded-2xl border border-border/60 bg-background/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{slot.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {slot.status}
+                      {slot.starts_at ? ` · Starts ${new Date(slot.starts_at).toLocaleString()}` : ""}
+                      {slot.ends_at ? ` · Ends ${new Date(slot.ends_at).toLocaleString()}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => removeSponsor(slot.id)}>
+                      <Trash className="mr-2 h-3.5 w-3.5" /> Remove
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => removeSponsor(slot.id)}>
-                    <Trash className="mr-2 h-3.5 w-3.5" /> Remove
-                  </Button>
+                <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
+                  <div>
+                    <p className="uppercase tracking-[0.22em] text-[10px]">Total impressions</p>
+                    <p className="text-sm font-semibold text-foreground">{slot.impressions}</p>
+                    <p>24h: {slot.impressions24h}</p>
+                  </div>
+                  <div>
+                    <p className="uppercase tracking-[0.22em] text-[10px]">Total clicks</p>
+                    <p className="text-sm font-semibold text-foreground">{slot.clicks}</p>
+                    <p>24h: {slot.clicks24h}</p>
+                  </div>
+                  <div>
+                    <p className="uppercase tracking-[0.22em] text-[10px]">CTR</p>
+                    <p className="text-sm font-semibold text-foreground">{formatPercent(slot.ctr)}</p>
+                    <p>24h: {formatPercent(slot.ctr24h)}</p>
+                  </div>
                 </div>
               </div>
             ))
@@ -633,4 +661,9 @@ function renderSummary(content: any) {
     return <span>Image</span>;
   }
   return <span>({String(type)})</span>;
+}
+
+function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) return "0%";
+  return `${(value * 100).toFixed(1)}%`;
 }

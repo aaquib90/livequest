@@ -86,7 +86,7 @@ export default function EmbedClient({
   awayTeamName?: string;
   awayTeamSlug?: string;
 }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [updates, setUpdates] = useState<Update[]>(initialUpdates);
   const isFootball = template === "football";
   const [newIds, setNewIds] = useState<Set<string>>(new Set());

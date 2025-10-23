@@ -179,8 +179,7 @@ export default {
       "/api/matches/sync",
       "/api/matches/complete",
       "/api/liveblogs/publish/scheduled",
-      // Future: orchestrate sponsor slot activation/expiry
-      // "/api/liveblogs/sponsors/lifecycle",
+      "/api/liveblogs/sponsors/lifecycle",
     ];
 
     await Promise.all(

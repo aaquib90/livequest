@@ -35,11 +35,8 @@ export async function GET(
       const withinWindow = (!startsAt || startsAt <= now) && (!endsAt || endsAt > now);
       if (!withinWindow) return false;
       if (status === "paused") return false;
-      if (status === "scheduled") {
-        // for scheduled slots we only show once window has begun
-        if (startsAt && startsAt > now) return false;
-      }
-      return true;
+      if (status === "scheduled") return false;
+      return status === "active";
     });
 
     return NextResponse.json({ slots }, { status: 200, headers: cors() });
