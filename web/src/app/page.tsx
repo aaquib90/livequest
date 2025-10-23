@@ -138,9 +138,8 @@ const pricing = [
       "Downloadable analytics & webhooks",
     ],
     cta: "Upgrade to Pro",
-    href: "https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01",
+    href: "/account?focus=billing",
     featured: true,
-    external: true,
   },
 ];
 

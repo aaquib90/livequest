@@ -166,6 +166,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ error?: string; folder?: string }>;
 }) {
+  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01";
   const supabase = await createClient();
   const {
     data: { user },
@@ -203,6 +204,9 @@ export default async function DashboardPage({
     monthlyUsage = count;
   }
   const limitReached = monthlyLimit !== null && monthlyUsage >= monthlyLimit;
+  const upgradePaymentLink = user.email
+    ? `${STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(user.email)}`
+    : STRIPE_PAYMENT_LINK;
 
   const folderMap = new Map<
     string,
@@ -291,11 +295,7 @@ export default async function DashboardPage({
                 size="lg"
                 className="border-border/70 bg-background/60 px-6"
               >
-                <a
-                  href="https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={upgradePaymentLink} target="_blank" rel="noopener noreferrer">
                   Upgrade to Pro
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </a>
