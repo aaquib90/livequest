@@ -98,18 +98,32 @@ async function aggregateCounts(
 ) {
   const out = new Map<string, number>();
   if (!slotIds.length) return out;
-  let query = supabase
-    .from(table)
-    .select("slot_id, count:id")
-    .eq("liveblog_id", liveblogId)
-    .in("slot_id", slotIds)
-    .group("slot_id");
-  if (since) {
-    query = query.gte("created_at", since);
-  }
-  const { data } = await query;
-  for (const row of (data as Array<{ slot_id: string; count: number }> | null) || []) {
-    out.set(String(row.slot_id), Number(row.count || 0));
+  const pageSize = 1000;
+  let from = 0;
+
+  while (true) {
+    let query = supabase
+      .from(table)
+      .select("slot_id", { head: false })
+      .eq("liveblog_id", liveblogId)
+      .in("slot_id", slotIds)
+      .range(from, from + pageSize - 1);
+    if (since) {
+      query = query.gte("created_at", since);
+    }
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
+    const rows = (data as Array<{ slot_id: string }> | null) ?? [];
+    for (const row of rows) {
+      const key = String(row.slot_id);
+      out.set(key, (out.get(key) || 0) + 1);
+    }
+    if (rows.length < pageSize) {
+      break;
+    }
+    from += pageSize;
   }
   return out;
 }
