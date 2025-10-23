@@ -8,31 +8,27 @@ type UpgradeHighlightsProps = {
 
 export function UpgradeHighlights({ className, items }: UpgradeHighlightsProps) {
   return (
-    <div
+    <section
+      aria-labelledby="upgrade-highlights-heading"
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-900/80 via-zinc-900/50 to-zinc-800/40 p-5 shadow-[0_25px_80px_-40px_rgba(15,15,17,0.8)]",
+        "rounded-2xl border border-border/70 bg-card px-5 py-6 shadow-sm",
         className,
       )}
     >
-      <div className="pointer-events-none absolute -top-28 right-0 h-48 w-48 rounded-full bg-primary/40 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 left-10 h-52 w-52 rounded-full bg-emerald-500/30 blur-3xl" />
-      <div className="relative flex flex-col gap-4">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
-          Upgrade highlights
-        </div>
-        <ul className="space-y-3 text-sm text-muted-foreground/90">
-          {items.map((item) => (
-            <li
-              key={item}
-              className="flex items-start gap-3 rounded-2xl border border-border/40 bg-background/70 px-3 py-2 text-foreground/90 shadow-[inset_0_0_0_1px_rgba(244,244,245,0.04)]"
-            >
-              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground" id="upgrade-highlights-heading">
+        <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        Upgrade highlights
       </div>
-    </div>
+      <ul className="mt-4 space-y-3">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-3">
+            <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-semibold text-primary">
+              {String.fromCharCode(8226)}
+            </span>
+            <p className="text-sm text-foreground/90">{item}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

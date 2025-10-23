@@ -85,49 +85,39 @@ export default function MatchesPage() {
   return (
     <div className="space-y-6 p-6">
       <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
-        <DialogContent className="max-w-xl overflow-hidden border border-border/60 bg-background/95 p-0 sm:max-w-2xl">
-          <div className="relative space-y-6 p-6 sm:p-8">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(161,161,170,0.08),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.14),_transparent_55%)]" />
-            <div className="relative space-y-6">
-              <DialogHeader className="space-y-3 text-left">
-                <DialogTitle className="text-3xl font-semibold tracking-tight text-foreground sm:text-[34px]">
-                  Go Pro, stay live all season
-                </DialogTitle>
-                <DialogDescription className="text-base leading-relaxed text-muted-foreground">
-                  {limitMessage}
-                </DialogDescription>
-              </DialogHeader>
-              <UpgradeHighlights items={upgradeHighlights} />
-              <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-primary/10 p-5 text-sm text-primary-foreground/90 shadow-[0_20px_70px_-45px_rgba(79,70,229,0.9)]">
-                <div className="pointer-events-none absolute -top-24 right-0 h-44 w-44 rounded-full bg-primary/40 blur-3xl" />
-                <div className="relative">
-                  <p className="text-xs uppercase tracking-[0.2em] text-primary/80">Pro plan</p>
-                  <p className="mt-2 text-lg font-semibold text-primary-foreground">
-                    $3.99 / month · cancel anytime
-                  </p>
-                  <p className="mt-1 text-sm text-primary-foreground/70">
-                    Includes shared editor access, webhooks, and sponsor exports on top of unlimited liveblogs.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-3 border-t border-border/70 bg-background/80 px-6 py-4 sm:flex-row sm:justify-between sm:px-8">
+        <DialogContent className="max-w-xl space-y-6 border border-border/60 bg-background p-6 sm:max-w-2xl sm:p-8">
+          <DialogHeader className="space-y-3 text-left">
+            <DialogTitle className="text-3xl font-semibold tracking-tight text-foreground sm:text-[30px]">
+              Go Pro, stay live all season
+            </DialogTitle>
+            <DialogDescription className="text-base leading-relaxed text-muted-foreground">
+              {limitMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <UpgradeHighlights items={upgradeHighlights} />
+          <section
+            aria-labelledby="pro-plan-breakdown"
+            className="rounded-2xl border border-border/70 bg-muted/30 px-5 py-4 text-sm text-muted-foreground"
+          >
+            <h3 id="pro-plan-breakdown" className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/80">
+              Pro plan
+            </h3>
+            <p className="mt-2 text-lg font-semibold text-foreground">$3.99 / month · cancel anytime</p>
+            <p className="mt-1 leading-relaxed">
+              Includes shared editor access, webhook automations, and sponsor exports on top of unlimited liveblogs.
+            </p>
+          </section>
+          <DialogFooter className="flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-between">
             <Button
               variant="ghost"
-              className="text-muted-foreground hover:text-foreground"
+              className="w-full text-muted-foreground hover:text-foreground sm:w-auto"
               onClick={() => setLimitDialogOpen(false)}
             >
               Not now
             </Button>
-            <Button
-              asChild
-              size="lg"
-              className="group relative overflow-hidden rounded-full px-7 text-base font-semibold shadow-[0_18px_65px_-30px_rgba(94,234,212,0.9)] transition-all hover:shadow-[0_24px_80px_-30px_rgba(94,234,212,0.9)]"
-            >
+            <Button asChild size="lg" className="w-full px-6 text-base font-semibold sm:w-auto">
               <Link href="/account?focus=billing">
                 Upgrade plan
-                <span className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-500 opacity-90 transition group-hover:opacity-100" />
               </Link>
             </Button>
           </DialogFooter>

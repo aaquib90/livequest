@@ -45,11 +45,18 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
       <header className="sticky top-4 z-50">
         <div className="flex items-center justify-between gap-4 rounded-3xl border border-border/60 bg-background/80 px-4 py-3 shadow-[0_0_60px_rgba(9,9,11,0.45)] backdrop-blur-md sm:px-6">
           <Link href="/" className="group flex items-center">
-            <img
-              src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(1).svg"
-              alt="Livequest Studio"
-              className="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] sm:h-11"
-            />
+            <span className="relative inline-flex">
+              <img
+                src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(1).svg"
+                alt="Livequest Studio"
+                className="hidden h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] dark:block sm:h-11"
+              />
+              <img
+                src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Copy%20of%20Livequest.svg"
+                alt="Livequest Studio"
+                className="block h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] dark:hidden sm:h-11"
+              />
+            </span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
             <Link href="/#features" className="transition-colors hover:text-foreground">
