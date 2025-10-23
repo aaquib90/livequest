@@ -88,8 +88,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (err) {
     console.error("stripe_checkout_error", err);
+    if (err instanceof StripeApiError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code ?? null },
+        { status: err.status },
+      );
+    }
     const message = err instanceof Error ? err.message : "server_error";
-    const status = err instanceof StripeApiError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
