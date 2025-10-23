@@ -896,7 +896,10 @@ function SponsorInline({ slot, onClick }: { slot: SponsorSlot; onClick: (slot: S
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 text-xs">
       <div className="flex items-center gap-3">
         {slot.image_url ? (
-          <img src={slot.image_url} alt="" className="h-8 w-8 rounded-lg border border-border/60 object-cover" loading="lazy" />
+          <div className="flex items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background/60 px-2 py-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={slot.image_url} alt={slot.name} className="h-8 w-auto" loading="lazy" />
+          </div>
         ) : null}
         <div className="leading-tight">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">{slot.name}</p>
