@@ -20,12 +20,16 @@ type TextContent = {
   event?: FootballEventKey | "" | null;
   event_meta?: Record<string, unknown> | null;
   image?: { path: string; width?: number; height?: number };
+  sponsored?: boolean;
+  sponsor_slot_id?: string | null;
 };
 type ImageContent = {
   type: "image";
   path: string;
   width?: number;
   height?: number;
+  sponsored?: boolean;
+  sponsor_slot_id?: string | null;
 };
 type LinkContent = {
   type: "link";
@@ -35,6 +39,8 @@ type LinkContent = {
   image?: string;
   siteName?: string;
   embed?: { provider: string; html?: string; width?: number; height?: number };
+  sponsored?: boolean;
+  sponsor_slot_id?: string | null;
 };
 type UnknownContent = { type: string; [key: string]: unknown };
 type UpdateContent = TextContent | ImageContent | LinkContent | UnknownContent | null;
@@ -55,6 +61,7 @@ type SponsorSlot = {
   cta_url?: string | null;
   affiliate_code?: string | null;
   image_path?: string | null;
+  image_url?: string | null;
   layout?: string | null;
   pinned?: boolean | null;
   priority?: number | null;
@@ -156,7 +163,13 @@ export default function EmbedClient({
         const json = await res.json();
         if (cancelled) return;
         if (json && Array.isArray(json.slots)) {
-          setSponsors(json.slots as SponsorSlot[]);
+          const mapped = (json.slots as SponsorSlot[]).map((slot) => ({
+            ...slot,
+            image_url: slot.image_path
+              ? supabase.storage.from("media").getPublicUrl(slot.image_path).data.publicUrl
+              : null,
+          }));
+          setSponsors(mapped);
         }
       } catch {}
     }
@@ -466,6 +479,7 @@ export default function EmbedClient({
             ? (textContent.event as FootballEventKey)
             : undefined;
         const isNew = newIds.has(u.id);
+        const isSponsored = isSponsoredContent(u.content);
         return (
         <article
           key={u.id}
@@ -482,7 +496,7 @@ export default function EmbedClient({
             <span className="pointer-events-none absolute -top-10 right-6 h-20 w-20 rounded-full bg-amber-400/15 blur-3xl" />
           ) : null}
           <div className="relative z-[1] space-y-4">
-            {u.pinned || eventKey ? (
+            {u.pinned || eventKey || isSponsored ? (
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
                 {u.pinned ? (
                   <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/10 px-3 py-1 text-amber-200">
@@ -491,6 +505,11 @@ export default function EmbedClient({
                 ) : null}
                 {eventKey ? (
                   <FootballEventBadge event={eventKey} size="sm" />
+                ) : null}
+                {isSponsored ? (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-emerald-200">
+                    Sponsored
+                  </span>
                 ) : null}
               </div>
             ) : null}
@@ -868,11 +887,16 @@ function formatDate(iso: string): string {
   }
 }
 
+function isSponsoredContent(content: UpdateContent): boolean {
+  if (!content || typeof content !== "object") return false;
+  if ("sponsored" in content && typeof (content as any).sponsored === "boolean") {
+    return Boolean((content as any).sponsored);
+  }
+  return false;
+}
+
 function SponsorCard({ slot, pinned, onClick }: { slot: SponsorSlot; pinned?: boolean; onClick: (slot: SponsorSlot, targetUrl: string | null) => void }) {
-  const supabase = createClient();
-  const imageUrl = slot.image_path
-    ? supabase.storage.from("media").getPublicUrl(slot.image_path).data.publicUrl
-    : null;
+  const imageUrl = slot.image_url || null;
   const targetUrl = resolveSponsorUrl(slot);
   return (
     <div

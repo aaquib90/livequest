@@ -49,6 +49,7 @@ export default function Composer({
   const [scheduledAt, setScheduledAt] = useState<string>("");
   const [eventType, setEventType] = useState<"" | FootballEventKey>("");
   const [teamSide, setTeamSide] = useState<"home" | "away">("home");
+  const [sponsored, setSponsored] = useState(true);
   const [squadHome, setSquadHome] = useState<Array<{ id: string; name: string }>>([]);
   const [squadAway, setSquadAway] = useState<Array<{ id: string; name: string }>>([]);
   const [player, setPlayer] = useState<string>("");
@@ -125,9 +126,10 @@ export default function Composer({
           image: (preview && preview.image) || undefined,
           siteName: (preview && preview.siteName) || undefined,
           embed: (preview && preview.embed) || undefined,
+          sponsored,
         };
       } catch {
-        payload = { type: "link", url: url.trim() };
+        payload = { type: "link", url: url.trim(), sponsored };
       }
     } else {
       payload = {
@@ -135,6 +137,7 @@ export default function Composer({
         title: title.trim() || undefined,
         text: text.trim(),
         image: attachedImage ? { path: attachedImage.path, width: attachedImage.width, height: attachedImage.height } : undefined,
+        sponsored,
       };
       if (isFootball && eventType) {
         payload.event = eventType;
@@ -197,6 +200,7 @@ export default function Composer({
       setManualName("");
       setManualIn("");
       setManualOut("");
+      setSponsored(true);
       // Fire-and-forget broadcast to Discord (if webhook configured)
       if (status === "published") {
         try {
@@ -306,7 +310,7 @@ export default function Composer({
           .insert({
             liveblog_id: liveblogId,
             status: "published",
-            content: { type: "image", path: key, width, height },
+            content: { type: "image", path: key, width, height, sponsored },
           });
         try {
           const content = { type: "image", path: key, width, height } as const;
@@ -422,6 +426,18 @@ export default function Composer({
           placeholder="Paint the picture…"
           className="min-h-[180px] resize-none bg-background/70"
         />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <input
+          id="liveblog-sponsored"
+          type="checkbox"
+          checked={sponsored}
+          onChange={(e) => setSponsored(e.target.checked)}
+          className="h-4 w-4 rounded border-border bg-background"
+        />
+        <Label htmlFor="liveblog-sponsored" className="text-sm">Mark this update as sponsored</Label>
+        <span className="text-xs text-muted-foreground">Sponsored updates include a partner badge in the embed.</span>
       </div>
 
       <p className="text-xs text-muted-foreground">

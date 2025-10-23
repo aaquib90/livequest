@@ -1,9 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Activity, BarChart3, Radio, Users, Clock, Send, Trash2 } from "lucide-react";
+import { Activity, BarChart3, Radio, Users, Clock, Send, Trash2, Upload, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import Composer from "./Composer";
 import Feed from "./Feed";
 import { createClient } from "@/lib/supabase/browserClient";
@@ -36,7 +39,7 @@ export default function ManageTabs({
   awayTeamSlug?: string;
   awayTeamName?: string;
 }) {
-  const [tab, setTab] = useState<"coverage" | "planner" | "analytics">("coverage");
+  const [tab, setTab] = useState<"coverage" | "planner" | "analytics" | "sponsors">("coverage");
   const [stats, setStats] = useState(analytics);
   const [sponsors, setSponsors] = useState<Array<{
     id: string;
@@ -50,7 +53,6 @@ export default function ManageTabs({
 
   useEffect(() => {
     setStats(analytics);
-    setSponsors([]);
   }, [analytics]);
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export default function ManageTabs({
         <TabButton active={tab === "coverage"} onClick={() => setTab("coverage")}>Coverage</TabButton>
         <TabButton active={tab === "planner"} onClick={() => setTab("planner")}>Planner</TabButton>
         <TabButton active={tab === "analytics"} onClick={() => setTab("analytics")}>Analytics</TabButton>
+        <TabButton active={tab === "sponsors"} onClick={() => setTab("sponsors")}>Sponsors</TabButton>
       </div>
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-3 py-1">
@@ -164,7 +167,7 @@ export default function ManageTabs({
             <Planner liveblogId={liveblogId} />
           </CardContent>
         </Card>
-      ) : (
+      ) : tab === "analytics" ? (
         <div className="space-y-4">
           <Card className="border-border/70 bg-background/60">
             <CardHeader className="space-y-3">
@@ -174,47 +177,39 @@ export default function ManageTabs({
                 <CardDescription>Performance from yesterday plus all-time session starts.</CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <AnalyticsStat icon={<Radio className="h-4 w-4" />} label="Live viewers" value={stats.concurrentNow} />
-              <AnalyticsStat icon={<Users className="h-4 w-4" />} label="Uniques (24h)" value={stats.uniques24h} />
-              <AnalyticsStat icon={<Activity className="h-4 w-4" />} label="Starts (24h)" value={stats.starts24h} />
-              <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={stats.totalStarts} />
-            </CardContent>
-          </Card>
-          <Card className="border-border/70 bg-background/60">
-            <CardHeader className="space-y-3">
-              <Badge variant="outline" className="w-fit">Sponsors</Badge>
-              <div>
-                <CardTitle className="text-lg">Active slots</CardTitle>
-                <CardDescription>Track impressions and clicks for each sponsored placement.</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {sponsors.length ? (
-                sponsors.map((slot) => (
-                  <div key={slot.id} className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{slot.name}</p>
-                        <p className="text-xs text-muted-foreground">{slot.status}</p>
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground">
-                        <p>Impressions: <span className="font-semibold text-foreground">{slot.impressions}</span></p>
-                        <p>Clicks: <span className="font-semibold text-foreground">{slot.clicks}</span></p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {slot.starts_at ? `Starts ${new Date(slot.starts_at).toLocaleString()}` : "Starts immediately"}
-                      {slot.ends_at ? ` · Ends ${new Date(slot.ends_at).toLocaleString()}` : ""}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No sponsor slots yet. Create one from the planner to highlight partners.</p>
-              )}
-            </CardContent>
-          </Card>
+              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <AnalyticsStat icon={<Radio className="h-4 w-4" />} label="Live viewers" value={stats.concurrentNow} />
+                <AnalyticsStat icon={<Users className="h-4 w-4" />} label="Uniques (24h)" value={stats.uniques24h} />
+                <AnalyticsStat icon={<Activity className="h-4 w-4" />} label="Starts (24h)" value={stats.starts24h} />
+                <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={stats.totalStarts} />
+              </CardContent>
+            </Card>
         </div>
+      ) : (
+        <SponsorManager
+          liveblogId={liveblogId}
+          slots={sponsors}
+          onRefresh={async () => {
+            try {
+              const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, { cache: "no-store" });
+              if (!res.ok) return;
+              const json = await res.json();
+              if (json && Array.isArray(json.slots)) {
+                setSponsors(
+                  (json.slots as any[]).map((slot) => ({
+                    id: String(slot.id),
+                    name: String(slot.name ?? ""),
+                    status: String(slot.status ?? "scheduled"),
+                    starts_at: slot.starts_at ?? null,
+                    ends_at: slot.ends_at ?? null,
+                    impressions: Number(slot.impressions ?? 0),
+                    clicks: Number(slot.clicks ?? 0),
+                  })),
+                );
+              }
+            } catch {}
+          }}
+        />
       )}
     </div>
   );
@@ -341,6 +336,282 @@ function Planner({ liveblogId }: { liveblogId: string }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; slots: Array<{ id: string; name: string; status: string; starts_at: string | null; ends_at: string | null; impressions: number; clicks: number }>; onRefresh: () => Promise<void> | void }) {
+  const supabase = createClient();
+  const [name, setName] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [description, setDescription] = useState("");
+  const [ctaText, setCtaText] = useState("Learn more");
+  const [ctaUrl, setCtaUrl] = useState("");
+  const [affiliateCode, setAffiliateCode] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [pinned, setPinned] = useState(false);
+  const [logoPath, setLogoPath] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleLogo(file: File) {
+    setUploading(true);
+    setError(null);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const key = `sponsors/${liveblogId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("media")
+        .upload(key, file, { upsert: false, contentType: file.type });
+      if (uploadError) {
+        setError(uploadError.message);
+        setUploading(false);
+        return;
+      }
+      const url = supabase.storage.from("media").getPublicUrl(key).data.publicUrl;
+      setLogoPath(key);
+      setLogoPreview(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "upload_failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function submitSponsor(event: React.FormEvent) {
+    event.preventDefault();
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    if (!ctaUrl.trim()) {
+      setError("CTA URL is required");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/liveblogs/${liveblogId}/sponsors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          headline: headline.trim() || null,
+          description: description.trim() || null,
+          cta_text: ctaText.trim() || "Learn more",
+          cta_url: ctaUrl.trim(),
+          affiliate_code: affiliateCode.trim() || null,
+          image_path: logoPath,
+          pinned,
+          status: "active",
+          starts_at: startsAt ? new Date(startsAt).toISOString() : null,
+          ends_at: endsAt ? new Date(endsAt).toISOString() : null,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setError(json?.error || "Unable to save sponsor");
+      } else {
+        setName("");
+        setHeadline("");
+        setDescription("");
+        setCtaText("Learn more");
+        setCtaUrl("");
+        setAffiliateCode("");
+        setStartsAt("");
+        setEndsAt("");
+        setPinned(false);
+        setLogoPath(null);
+        setLogoPreview(null);
+        await onRefresh();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save sponsor");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeSponsor(id: string) {
+    try {
+      await fetch(`/api/liveblogs/${liveblogId}/sponsors/${id}`, {
+        method: "DELETE",
+      });
+      await onRefresh();
+    } catch {}
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border/70 bg-background/60">
+        <CardHeader className="space-y-3">
+          <Badge variant="outline" className="w-fit">New sponsor</Badge>
+          <CardTitle className="text-lg">Highlight a partner</CardTitle>
+          <CardDescription>
+            Upload a logo, set the call to action, and choose when the placement should run. Pinned sponsors appear above live coverage.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submitSponsor} className="space-y-4">
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-name">Sponsor name</Label>
+                <Input
+                  id="sponsor-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Acme Corp"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-cta-text">CTA label</Label>
+                <Input
+                  id="sponsor-cta-text"
+                  value={ctaText}
+                  onChange={(e) => setCtaText(e.target.value)}
+                  placeholder="Learn more"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-headline">Headline</Label>
+                <Input
+                  id="sponsor-headline"
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  placeholder="Matchday offer"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-cta-url">CTA URL</Label>
+                <Input
+                  id="sponsor-cta-url"
+                  type="url"
+                  value={ctaUrl}
+                  onChange={(e) => setCtaUrl(e.target.value)}
+                  placeholder="https://partner.example.com/offer"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sponsor-description">Description</Label>
+              <Textarea
+                id="sponsor-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add supporting copy to appear beneath the headline."
+                rows={4}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-affiliate">Affiliate code (optional)</Label>
+                <Input
+                  id="sponsor-affiliate"
+                  value={affiliateCode}
+                  onChange={(e) => setAffiliateCode(e.target.value)}
+                  placeholder="AFF-123"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <input
+                  id="sponsor-pinned"
+                  type="checkbox"
+                  checked={pinned}
+                  onChange={(e) => setPinned(e.target.checked)}
+                  className="h-4 w-4 rounded border-border bg-background"
+                />
+                <Label htmlFor="sponsor-pinned" className="text-sm">Pin above coverage</Label>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-start">Starts at</Label>
+                <Input
+                  id="sponsor-start"
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sponsor-end">Ends at</Label>
+                <Input
+                  id="sponsor-end"
+                  type="datetime-local"
+                  value={endsAt}
+                  onChange={(e) => setEndsAt(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Logo</Label>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-2 text-sm text-muted-foreground hover:border-border/40">
+                  <Upload className="h-4 w-4" />
+                  <span>{uploading ? "Uploading…" : "Upload logo"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogo(file);
+                    }}
+                    disabled={uploading}
+                  />
+                </label>
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Sponsor logo preview" className="h-12 rounded border border-border/60 bg-background/60" />
+                ) : null}
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={saving || uploading}>
+                {saving ? "Saving…" : "Create sponsor"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 bg-background/60">
+        <CardHeader className="space-y-3">
+          <Badge variant="outline" className="w-fit">Active sponsors</Badge>
+          <CardDescription>Monitor delivery and manage existing slots.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {slots.length ? (
+            slots.map((slot) => (
+              <div key={slot.id} className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{slot.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {slot.status}
+                    {slot.starts_at ? ` · Starts ${new Date(slot.starts_at).toLocaleString()}` : ""}
+                    {slot.ends_at ? ` · Ends ${new Date(slot.ends_at).toLocaleString()}` : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Impressions: <span className="font-semibold text-foreground">{slot.impressions}</span> · Clicks: <span className="font-semibold text-foreground">{slot.clicks}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => removeSponsor(slot.id)}>
+                    <Trash className="mr-2 h-3.5 w-3.5" /> Remove
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No sponsors yet. Create your first placement above.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
