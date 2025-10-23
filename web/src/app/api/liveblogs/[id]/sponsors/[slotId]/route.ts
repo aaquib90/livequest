@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
+import type { User } from "@supabase/supabase-js";
+
+import { canManageSponsors, fetchAccountFeaturesForAccount } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/serverClient";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
-async function requireEditorAccess(liveblogId: string, req: Request) {
+type AccessCheckResult = {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  user: User | null;
+  allowed: boolean;
+  featureAllowed: boolean;
+};
+
+async function requireEditorAccess(liveblogId: string, req: Request): Promise<AccessCheckResult> {
   const supabase = await createClient();
   let token: string | null = null;
   const authHeader = req.headers.get("authorization");
@@ -14,21 +24,27 @@ async function requireEditorAccess(liveblogId: string, req: Request) {
     data: { user },
   } = token ? await supabase.auth.getUser(token) : await supabase.auth.getUser();
   if (!user) {
-    return { supabase, user: null, allowed: false };
+    return { supabase, user: null, allowed: false, featureAllowed: false };
   }
   const { data: lb } = await supabase
     .from("liveblogs")
     .select("owner_id")
     .eq("id", liveblogId)
     .single();
-  if (!lb) return { supabase, user, allowed: false };
-  if (lb.owner_id === user.id) return { supabase, user, allowed: true };
-  const { count = 0 } = await supabase
-    .from("liveblog_editors")
-    .select("user_id", { count: "exact", head: true })
-    .eq("liveblog_id", liveblogId)
-    .eq("user_id", user.id);
-  return { supabase, user, allowed: count > 0 };
+  if (!lb) return { supabase, user, allowed: false, featureAllowed: false };
+  const ownerId = lb.owner_id as string;
+  let allowed = ownerId === user.id;
+  if (!allowed) {
+    const { count = 0 } = await supabase
+      .from("liveblog_editors")
+      .select("user_id", { count: "exact", head: true })
+      .eq("liveblog_id", liveblogId)
+      .eq("user_id", user.id);
+    allowed = count > 0;
+  }
+  const features = await fetchAccountFeaturesForAccount(ownerId).catch(() => null);
+  const featureAllowed = canManageSponsors(features);
+  return { supabase, user, allowed, featureAllowed };
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string; slotId: string } }) {
@@ -38,12 +54,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string; sl
     if (!liveblogId || !slotId) {
       return NextResponse.json({ error: "bad_request" }, { status: 400 });
     }
-    const { supabase, allowed } = await requireEditorAccess(liveblogId, req);
+    const { supabase, allowed, featureAllowed } = await requireEditorAccess(liveblogId, req);
     if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!featureAllowed) return NextResponse.json({ error: "subscription_required" }, { status: 402 });
 
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    const fields = [
+    const fields: Array<keyof typeof body> = [
       "name",
       "headline",
       "description",
@@ -59,14 +76,26 @@ export async function PATCH(req: Request, { params }: { params: { id: string; sl
       "ends_at",
     ];
     for (const key of fields) {
-      if (Object.prototype.hasOwnProperty.call(body, key)) {
-        const value = (body as any)[key];
-        if (key === "starts_at" || key === "ends_at") {
-          update[key] = value ? new Date(value).toISOString() : null;
+      if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+      const value = body[key];
+      if (key === "starts_at" || key === "ends_at") {
+        if (typeof value === "string" && value.length) {
+          update[key] = new Date(value).toISOString();
         } else {
-          update[key] = value;
+          update[key] = null;
         }
+        continue;
       }
+      if (key === "priority") {
+        const numberValue = typeof value === "number" ? value : Number(value ?? 0);
+        update[key] = Number.isFinite(numberValue) ? numberValue : 0;
+        continue;
+      }
+      if (key === "pinned") {
+        update[key] = Boolean(value);
+        continue;
+      }
+      update[key as string] = value;
     }
 
     const { data, error } = await supabase
@@ -96,8 +125,9 @@ export async function DELETE(_req: Request, { params }: { params: { id: string; 
     if (!liveblogId || !slotId) {
       return NextResponse.json({ error: "bad_request" }, { status: 400 });
     }
-    const { supabase, allowed } = await requireEditorAccess(liveblogId, _req);
+    const { supabase, allowed, featureAllowed } = await requireEditorAccess(liveblogId, _req);
     if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!featureAllowed) return NextResponse.json({ error: "subscription_required" }, { status: 402 });
 
     const { error } = await supabase
       .from("sponsor_slots")

@@ -1,10 +1,29 @@
 import { NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
+
+import { canManageSponsors, fetchAccountFeaturesForAccount } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/serverClient";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
-async function requireEditorAccess(liveblogId: string, req: Request) {
+type SponsorSlotRow = {
+  id: string;
+  name: string | null;
+  status: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  [key: string]: unknown;
+};
+
+type AccessCheckResult = {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  user: User | null;
+  allowed: boolean;
+  featureAllowed: boolean;
+  ownerId: string | null;
+};
+
+async function requireEditorAccess(liveblogId: string, req: Request): Promise<AccessCheckResult> {
   const supabase = await createClient();
   let token: string | null = null;
   const authHeader = req.headers.get("authorization");
@@ -15,21 +34,31 @@ async function requireEditorAccess(liveblogId: string, req: Request) {
     data: { user },
   } = token ? await supabase.auth.getUser(token) : await supabase.auth.getUser();
   if (!user) {
-    return { supabase, user: null, allowed: false };
+    return { supabase, user: null, allowed: false, featureAllowed: false, ownerId: null };
   }
   const { data: lb } = await supabase
     .from("liveblogs")
     .select("owner_id")
     .eq("id", liveblogId)
     .single();
-  if (!lb) return { supabase, user, allowed: false };
-  if (lb.owner_id === user.id) return { supabase, user, allowed: true };
-  const { count = 0 } = await supabase
-    .from("liveblog_editors")
-    .select("user_id", { count: "exact", head: true })
-    .eq("liveblog_id", liveblogId)
-    .eq("user_id", user.id);
-  return { supabase, user, allowed: count > 0 };
+  if (!lb) {
+    return { supabase, user, allowed: false, featureAllowed: false, ownerId: null };
+  }
+  const ownerId = lb.owner_id as string;
+  let allowed = ownerId === user.id;
+  if (!allowed) {
+    const { count = 0 } = await supabase
+      .from("liveblog_editors")
+      .select("user_id", { count: "exact", head: true })
+      .eq("liveblog_id", liveblogId)
+      .eq("user_id", user.id);
+    allowed = count > 0;
+  }
+
+  const features = await fetchAccountFeaturesForAccount(ownerId).catch(() => null);
+  const featureAllowed = canManageSponsors(features);
+
+  return { supabase, user, allowed, featureAllowed, ownerId };
 }
 
 export async function GET(
@@ -39,8 +68,9 @@ export async function GET(
   try {
     const liveblogId = params.id;
     if (!liveblogId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-    const { supabase, allowed } = await requireEditorAccess(liveblogId, _req);
+    const { supabase, allowed, featureAllowed } = await requireEditorAccess(liveblogId, _req);
     if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!featureAllowed) return NextResponse.json({ error: "subscription_required" }, { status: 402 });
 
     const { data, error } = await supabase
       .from("sponsor_slots")
@@ -53,8 +83,8 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const slotsRaw = data || [];
-    const slotIds = slotsRaw.map((row: any) => row.id).filter(Boolean);
+    const slotsRaw = ((data ?? []) as SponsorSlotRow[]).filter((row) => typeof row?.id === "string");
+    const slotIds = slotsRaw.map((row) => row.id);
     const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
 
     const impressionsTotal = await aggregateCounts(supabase, "sponsor_impressions", liveblogId, slotIds);
@@ -62,7 +92,7 @@ export async function GET(
     const clicksTotal = await aggregateCounts(supabase, "sponsor_clicks", liveblogId, slotIds);
     const clicks24h = await aggregateCounts(supabase, "sponsor_clicks", liveblogId, slotIds, since24h);
 
-    const slots = slotsRaw.map((row: any) => {
+    const slots = slotsRaw.map((row) => {
       const totalImpressions = impressionsTotal.get(row.id) || 0;
       const totalClicks = clicksTotal.get(row.id) || 0;
       const lastImpressions = impressions24h.get(row.id) || 0;
@@ -90,7 +120,7 @@ export async function GET(
 }
 
 async function aggregateCounts(
-  supabase: SupabaseClient<any, any, any>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   table: string,
   liveblogId: string,
   slotIds: string[],
@@ -115,8 +145,9 @@ async function aggregateCounts(
     if (error) {
       throw error;
     }
-    const rows = (data as Array<{ slot_id: string }> | null) ?? [];
+    const rows = (Array.isArray(data) ? data : []) as Array<{ slot_id: string | null }>;
     for (const row of rows) {
+      if (!row?.slot_id) continue;
       const key = String(row.slot_id);
       out.set(key, (out.get(key) || 0) + 1);
     }
@@ -132,30 +163,55 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const liveblogId = params.id;
     if (!liveblogId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-    const { supabase, user, allowed } = await requireEditorAccess(liveblogId, req);
+    const { supabase, user, allowed, featureAllowed } = await requireEditorAccess(liveblogId, req);
     if (!allowed || !user) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!featureAllowed) return NextResponse.json({ error: "subscription_required" }, { status: 402 });
 
-    const payload = await req.json().catch(() => ({}));
-    const name = typeof payload?.name === "string" ? payload.name.trim() : "";
+    const payload = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const nameValue = payload?.name;
+    const name = typeof nameValue === "string" ? nameValue.trim() : "";
     if (!name) {
       return NextResponse.json({ error: "name_required" }, { status: 400 });
     }
 
+    const headline = payload?.headline;
+    const description = payload?.description;
+    const ctaText = payload?.cta_text;
+    const ctaUrl = payload?.cta_url;
+    const affiliateCode = payload?.affiliate_code;
+    const imagePath = payload?.image_path;
+    const layoutRaw = payload?.layout;
+    const pinnedRaw = payload?.pinned;
+    const priorityRaw = payload?.priority;
+    const statusRaw = payload?.status;
+    const startsAtRaw = payload?.starts_at;
+    const endsAtRaw = payload?.ends_at;
+
+    const priorityNumber =
+      typeof priorityRaw === "number" ? priorityRaw : Number(priorityRaw ?? 0);
+    const priority = Number.isFinite(priorityNumber) ? priorityNumber : 0;
+
     const slot = {
       liveblog_id: liveblogId,
       name,
-      headline: typeof payload?.headline === "string" ? payload.headline : null,
-      description: typeof payload?.description === "string" ? payload.description : null,
-      cta_text: typeof payload?.cta_text === "string" ? payload.cta_text : null,
-      cta_url: typeof payload?.cta_url === "string" ? payload.cta_url : null,
-      affiliate_code: typeof payload?.affiliate_code === "string" ? payload.affiliate_code : null,
-      image_path: typeof payload?.image_path === "string" ? payload.image_path : null,
-      layout: typeof payload?.layout === "string" && payload.layout.length ? payload.layout : "card",
-      pinned: Boolean(payload?.pinned),
-      priority: Number.isFinite(payload?.priority) ? Number(payload.priority) : 0,
-      status: typeof payload?.status === "string" ? payload.status : "scheduled",
-      starts_at: payload?.starts_at ? new Date(payload.starts_at).toISOString() : null,
-      ends_at: payload?.ends_at ? new Date(payload.ends_at).toISOString() : null,
+      headline: typeof headline === "string" ? headline : null,
+      description: typeof description === "string" ? description : null,
+      cta_text: typeof ctaText === "string" ? ctaText : null,
+      cta_url: typeof ctaUrl === "string" ? ctaUrl : null,
+      affiliate_code: typeof affiliateCode === "string" ? affiliateCode : null,
+      image_path: typeof imagePath === "string" ? imagePath : null,
+      layout: typeof layoutRaw === "string" && layoutRaw.length ? layoutRaw : "card",
+      pinned: Boolean(pinnedRaw),
+      priority,
+      status: typeof statusRaw === "string" ? statusRaw : "scheduled",
+      starts_at:
+        typeof startsAtRaw === "string" && startsAtRaw.length
+          ? new Date(startsAtRaw).toISOString()
+          : null,
+      ends_at:
+        typeof endsAtRaw === "string" && endsAtRaw.length
+          ? new Date(endsAtRaw).toISOString()
+          : null,
       created_by: user.id,
       updated_at: new Date().toISOString(),
     };

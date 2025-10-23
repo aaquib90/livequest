@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/serverClient";
 
 import { CreateLiveblogDialog } from "./_components/create-liveblog-dialog";
@@ -83,6 +84,28 @@ async function createLiveblog(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return redirect("/signin");
   if (!title) return redirect("/dashboard?error=Title%20required");
+
+  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
+  const monthlyLimit =
+    typeof features?.monthly_liveblog_limit === "number"
+      ? features.monthly_liveblog_limit
+      : null;
+
+  if (monthlyLimit !== null) {
+    const now = new Date();
+    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const { count = 0 } = await supabase
+      .from("liveblogs")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .gte("created_at", periodStart.toISOString());
+    if (count >= monthlyLimit) {
+      return redirect(
+        "/dashboard?error=" +
+          encodeURIComponent("Monthly liveblog limit reached. Upgrade for unlimited projects."),
+      );
+    }
+  }
   const { data, error } = await supabase
     .from("liveblogs")
     .insert({
@@ -94,7 +117,13 @@ async function createLiveblog(formData: FormData) {
     .select("id")
     .single();
   if (error)
-    return redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+    return redirect(
+      `/dashboard?error=${encodeURIComponent(
+        error.message.includes("liveblog_monthly_limit_reached")
+          ? "Monthly liveblog limit reached. Upgrade for unlimited projects."
+          : error.message,
+      )}`,
+    );
   return redirect(`/liveblogs/${data.id}/manage`);
 }
 
@@ -156,6 +185,25 @@ export default async function DashboardPage({
     timeStyle: "short",
   });
 
+  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
+  const planLabel = features?.is_paid ? "Pro plan" : "Free plan";
+  const monthlyLimit =
+    typeof features?.monthly_liveblog_limit === "number"
+      ? features.monthly_liveblog_limit
+      : null;
+  let monthlyUsage = 0;
+  if (monthlyLimit !== null) {
+    const now = new Date();
+    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const { count = 0 } = await supabase
+      .from("liveblogs")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .gte("created_at", periodStart.toISOString());
+    monthlyUsage = count;
+  }
+  const limitReached = monthlyLimit !== null && monthlyUsage >= monthlyLimit;
+
   const folderMap = new Map<
     string,
     { key: string; label: string; count: number }
@@ -211,13 +259,44 @@ export default async function DashboardPage({
                 Spin up a new liveblog or dive back into your ongoing coverage.
                 Everything updates in realtime for your audience.
               </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/70 px-3 py-1 font-medium text-foreground/90">
+                  {planLabel}
+                </span>
+                {monthlyLimit !== null ? (
+                  <span>
+                    {monthlyUsage}/{monthlyLimit} liveblogs this month
+                  </span>
+                ) : (
+                  <span>Unlimited liveblogs</span>
+                )}
+                <span className="hidden text-xs text-muted-foreground/80 md:inline">
+                  Sponsors & premium analytics are included with Pro.
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <CreateLiveblogDialog
               createLiveblog={createLiveblog}
               folderOptions={folderOptions}
+              monthlyLimit={monthlyLimit}
+              monthlyUsage={monthlyUsage}
+              limitReached={limitReached}
             />
+            {!features?.is_paid ? (
+              <Button
+                asChild
+                variant="secondary"
+                size="lg"
+                className="border-border/70 bg-background/60 px-6"
+              >
+                <Link href="/account?focus=billing">
+                  Upgrade to Pro
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
             <Button
               asChild
               variant="outline"

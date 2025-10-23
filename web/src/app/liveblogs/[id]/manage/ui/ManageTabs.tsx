@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, BarChart3, Radio, Users, Clock, Send, Trash2, Upload, Trash } from "lucide-react";
+import { Activity, BarChart3, Radio, Users, Clock, Send, Trash2, Upload, Trash, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,20 @@ type Update = {
   content: any;
   published_at: string | null;
   pinned: boolean;
+};
+
+type SponsorSlotSummary = {
+  id: string;
+  name: string;
+  status: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  impressions: number;
+  clicks: number;
+  impressions24h: number;
+  clicks24h: number;
+  ctr: number;
+  ctr24h: number;
 };
 
 export default function ManageTabs({
@@ -42,26 +56,18 @@ export default function ManageTabs({
   const [tab, setTab] = useState<"coverage" | "planner" | "analytics" | "sponsors">("coverage");
   const [stats, setStats] = useState(analytics);
   const supabaseClient = useMemo(() => createClient(), []);
-  const [sponsors, setSponsors] = useState<Array<{
-    id: string;
-    name: string;
-    status: string;
-    starts_at: string | null;
-    ends_at: string | null;
-    impressions: number;
-    clicks: number;
-    impressions24h: number;
-    clicks24h: number;
-    ctr: number;
-    ctr24h: number;
-  }>>([]);
+  const [sponsors, setSponsors] = useState<SponsorSlotSummary[]>([]);
+  const [sponsorAccess, setSponsorAccess] = useState<"unknown" | "granted" | "restricted">("unknown");
+  const [analyticsAccess, setAnalyticsAccess] = useState<"unknown" | "granted" | "restricted">("unknown");
 
   const activeSponsorOptions = useMemo(
     () =>
-      sponsors
-        .filter((slot) => slot.status === "active")
-        .map((slot) => ({ id: slot.id, name: slot.name })),
-    [sponsors],
+      sponsorAccess === "granted"
+        ? sponsors
+            .filter((slot) => slot.status === "active")
+            .map((slot) => ({ id: slot.id, name: slot.name }))
+        : [],
+    [sponsors, sponsorAccess],
   );
 
   useEffect(() => {
@@ -91,20 +97,28 @@ export default function ManageTabs({
             headers: authHeaders,
           }),
         ]);
-        if (!cancelled && analyticsRes.ok) {
-          const json = await analyticsRes.json();
-          setStats({
-            uniques24h: Number(json.uniques24h) || 0,
-            starts24h: Number(json.starts24h) || 0,
-            totalStarts: Number(json.totalStarts) || 0,
-            concurrentNow: Number(json.concurrentNow) || 0,
-          });
+        if (!cancelled) {
+          if (analyticsRes.status === 402) {
+            setAnalyticsAccess("restricted");
+          } else if (analyticsRes.ok) {
+            const json = await analyticsRes.json();
+            setAnalyticsAccess("granted");
+            setStats({
+              uniques24h: Number(json.uniques24h) || 0,
+              starts24h: Number(json.starts24h) || 0,
+              totalStarts: Number(json.totalStarts) || 0,
+              concurrentNow: Number(json.concurrentNow) || 0,
+            });
+          }
         }
-        if (!cancelled && sponsorsRes.ok) {
-          const json = await sponsorsRes.json();
-          if (json && Array.isArray(json.slots)) {
-            setSponsors(
-              (json.slots as any[]).map((slot) => ({
+        if (!cancelled) {
+          if (sponsorsRes.status === 402) {
+            setSponsorAccess("restricted");
+            setSponsors([]);
+          } else if (sponsorsRes.ok) {
+            const json = await sponsorsRes.json();
+            if (json && Array.isArray(json.slots)) {
+              const mapped = (json.slots as SponsorSlotSummary[]).map((slot) => ({
                 id: String(slot.id),
                 name: String(slot.name ?? ""),
                 status: String(slot.status ?? "scheduled"),
@@ -116,8 +130,13 @@ export default function ManageTabs({
                 clicks24h: Number(slot.clicks24h ?? 0),
                 ctr: Number(slot.ctr ?? 0),
                 ctr24h: Number(slot.ctr24h ?? 0),
-              })),
-            );
+              }));
+              setSponsorAccess("granted");
+              setSponsors(mapped);
+            } else {
+              setSponsorAccess("granted");
+              setSponsors([]);
+            }
           }
         }
       } catch {
@@ -200,6 +219,14 @@ export default function ManageTabs({
           </CardContent>
         </Card>
       ) : tab === "analytics" ? (
+        analyticsAccess === "restricted" ? (
+          <UpgradeCallout
+            title="Upgrade to unlock liveblog analytics"
+            description="Audience timelines and real-time session counts are part of the Pro plan."
+            ctaHref="/account?focus=billing"
+            ctaLabel="View plans"
+          />
+        ) : (
         <div className="space-y-4">
           <Card className="border-border/70 bg-background/60">
             <CardHeader className="space-y-3">
@@ -216,8 +243,16 @@ export default function ManageTabs({
                 <AnalyticsStat icon={<BarChart3 className="h-4 w-4" />} label="Total starts" value={stats.totalStarts} />
               </CardContent>
             </Card>
-        </div>
+        </div>)
       ) : (
+        sponsorAccess === "restricted" ? (
+          <UpgradeCallout
+            title="Upgrade to manage sponsors"
+            description="Create sponsor slots, track impressions, and capture clicks with the Pro plan."
+            ctaHref="/account?focus=billing"
+            ctaLabel="View plans"
+          />
+        ) : (
           <SponsorManager
             liveblogId={liveblogId}
             slots={sponsors}
@@ -232,11 +267,17 @@ export default function ManageTabs({
                   credentials: "include",
                   headers: authHeaders,
                 });
-                if (!res.ok) return;
+                if (!res.ok) {
+                  if (res.status === 402) {
+                    setSponsorAccess("restricted");
+                    setSponsors([]);
+                  }
+                  return;
+                }
                 const json = await res.json();
                 if (json && Array.isArray(json.slots)) {
                   setSponsors(
-                    (json.slots as any[]).map((slot) => ({
+                    (json.slots as SponsorSlotSummary[]).map((slot) => ({
                       id: String(slot.id),
                       name: String(slot.name ?? ""),
                       status: String(slot.status ?? "scheduled"),
@@ -250,11 +291,13 @@ export default function ManageTabs({
                       ctr24h: Number(slot.ctr24h ?? 0),
                     })),
                   );
+                  setSponsorAccess("granted");
                 }
               } catch {}
             }}
         />
-      )}
+        ))
+      }
     </div>
   );
 }
@@ -385,7 +428,7 @@ function Planner({ liveblogId }: { liveblogId: string }) {
   );
 }
 
-function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; slots: Array<{ id: string; name: string; status: string; starts_at: string | null; ends_at: string | null; impressions: number; clicks: number; impressions24h: number; clicks24h: number; ctr: number; ctr24h: number }>; onRefresh: () => Promise<void> | void }) {
+function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; slots: SponsorSlotSummary[]; onRefresh: () => Promise<void> | void }) {
   const supabase = createClient();
   const [name, setName] = useState("");
   const [headline, setHeadline] = useState("");
@@ -688,6 +731,36 @@ function SponsorManager({ liveblogId, slots, onRefresh }: { liveblogId: string; 
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function UpgradeCallout({
+  title,
+  description,
+  ctaHref,
+  ctaLabel,
+}: {
+  title: string;
+  description: string;
+  ctaHref: string;
+  ctaLabel: string;
+}) {
+  return (
+    <Card className="border-dashed border-primary/40 bg-primary/5">
+      <CardHeader className="space-y-3">
+        <Badge variant="outline" className="w-fit border-primary/50 text-primary">
+          <Zap className="mr-1.5 h-3.5 w-3.5" />
+          Pro feature
+        </Badge>
+        <CardTitle className="text-2xl">{title}</CardTitle>
+        <CardDescription className="text-base">{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button asChild size="sm" className="bg-primary text-primary-foreground">
+          <a href={ctaHref}>{ctaLabel}</a>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

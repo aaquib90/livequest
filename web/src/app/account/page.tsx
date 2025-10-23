@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import AccountInsightsClient from "./components/AccountInsightsClient";
+import SubscriptionPlanCard from "./components/SubscriptionPlanCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/serverClient";
+import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
 
 export const runtime = "edge";
 
@@ -105,6 +107,15 @@ export default async function AccountPage({
       : null;
   const errorMessage = sp?.error ?? null;
 
+  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const { count: liveblogsThisMonth = 0 } = await supabase
+    .from("liveblogs")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", user.id)
+    .gte("created_at", monthStart.toISOString());
+
   return (
     <div className="space-y-8">
       <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-900/70 via-zinc-900/30 to-zinc-900/10 px-8 py-12 shadow-[0_20px_40px_-25px_rgba(9,9,11,0.75)]">
@@ -166,6 +177,8 @@ export default async function AccountPage({
           </div>
         ) : null}
       </div>
+
+      <SubscriptionPlanCard features={features} monthlyUsage={liveblogsThisMonth || 0} />
 
       <AccountInsightsClient />
 

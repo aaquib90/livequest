@@ -1,26 +1,33 @@
 import { NextResponse } from "next/server";
+
+import { fetchAccountFeaturesForAccount, isPaidAccount } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/serverClient";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
-async function isEditorOrOwner(
+type AccessCheck = {
+  allowed: boolean;
+  ownerId: string | null;
+};
+
+async function resolveAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
   liveblogId: string,
   userId: string,
-) {
+) : Promise<AccessCheck> {
   const { data: lb } = await supabase
     .from("liveblogs")
     .select("owner_id")
     .eq("id", liveblogId)
     .single();
-  if (!lb) return false;
-  if (lb.owner_id === userId) return true;
+  if (!lb) return { allowed: false, ownerId: null };
+  if (lb.owner_id === userId) return { allowed: true, ownerId: lb.owner_id as string };
   const { count = 0 } = await supabase
     .from("liveblog_editors")
     .select("user_id", { count: "exact", head: true })
     .eq("liveblog_id", liveblogId)
     .eq("user_id", userId);
-  return count > 0;
+  return { allowed: count > 0, ownerId: lb.owner_id as string };
 }
 
 export async function GET(
@@ -38,8 +45,15 @@ export async function GET(
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const allowed = await isEditorOrOwner(supabase, liveblogId, user.id);
+    const { allowed, ownerId } = await resolveAccess(supabase, liveblogId, user.id);
     if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+    const features = ownerId
+      ? await fetchAccountFeaturesForAccount(ownerId).catch(() => null)
+      : null;
+    if (!isPaidAccount(features)) {
+      return NextResponse.json({ error: "subscription_required" }, { status: 402 });
+    }
 
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
 

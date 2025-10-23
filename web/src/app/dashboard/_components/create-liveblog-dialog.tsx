@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PenLine, Sparkles } from "lucide-react";
 
@@ -22,11 +23,17 @@ import { FolderInput } from "./folder-input";
 type CreateLiveblogDialogProps = {
   createLiveblog: (formData: FormData) => Promise<void>;
   folderOptions: string[];
+  monthlyLimit: number | null;
+  monthlyUsage: number;
+  limitReached: boolean;
 };
 
 export function CreateLiveblogDialog({
   createLiveblog,
   folderOptions,
+  monthlyLimit,
+  monthlyUsage,
+  limitReached,
 }: CreateLiveblogDialogProps) {
   const [open, setOpen] = useState(false);
   const suggestions = useMemo(
@@ -36,11 +43,18 @@ export function CreateLiveblogDialog({
       ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
     [folderOptions]
   );
+  const remaining =
+    monthlyLimit !== null ? Math.max(monthlyLimit - monthlyUsage, 0) : null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="px-7">
+        <Button
+          size="lg"
+          className="px-7"
+          disabled={limitReached}
+          title={limitReached ? "Upgrade for unlimited projects" : undefined}
+        >
           <PenLine className="mr-2 h-4 w-4" />
           Start from scratch
         </Button>
@@ -64,6 +78,24 @@ export function CreateLiveblogDialog({
           }}
           className="space-y-5"
         >
+          {monthlyLimit !== null ? (
+            <div className="rounded-2xl border border-border/60 bg-background/60 p-3 text-sm text-muted-foreground">
+              {limitReached ? (
+                <span>
+                  <span className="font-medium text-foreground">Monthly limit reached.</span>
+                  {" "}The free plan includes {monthlyLimit} liveblogs per month. Upgrade for unlimited projects from the{' '}
+                  <Link className="text-primary underline" href="/account?focus=billing">
+                    billing page
+                  </Link>
+                  .
+                </span>
+              ) : (
+                <span>
+                  You can create <span className="font-medium text-foreground">{remaining}</span> more liveblogs this month on the free plan.
+                </span>
+              )}
+            </div>
+          ) : null}
           <div className="space-y-2 text-left">
             <Label htmlFor="new-liveblog-title">Title</Label>
             <Input
@@ -105,7 +137,7 @@ export function CreateLiveblogDialog({
             >
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={limitReached}>
               <PenLine className="mr-2 h-4 w-4" />
               Create liveblog
             </Button>

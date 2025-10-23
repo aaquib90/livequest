@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/serverClient";
+
+import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
 import { createAdminClient } from "@/lib/supabase/adminClient";
+import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
 
@@ -22,6 +24,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .eq("id", liveblogId)
       .single();
     if (!lb || lb.owner_id !== user.id) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+    const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
+    if (!features?.can_manage_editors) {
+      return NextResponse.json({ error: "subscription_required" }, { status: 402 });
+    }
 
     const form = await req.formData().catch(() => null);
     const isForm = form instanceof FormData;
@@ -58,5 +65,4 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
-
 
