@@ -1,6 +1,6 @@
 name = "liveblogo"
 compatibility_date = "2025-10-21"
-pages_build_output_dir = ".open-next"
+pages_build_output_dir = ".vercel/output/static"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]

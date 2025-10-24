@@ -28,6 +28,7 @@
     "web-push": "^3.6.3"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.6",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
