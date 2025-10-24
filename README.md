@@ -47,7 +47,6 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
 | `OPENAI_API_KEY` | ➖ | Enables the voice composer by proxying audio to OpenAI `gpt-4o-mini-transcribe`. |
-| `SUPABASE_SSR_MODULE_URL` | ➖ | Optional URL (e.g. R2/Workers) serving a bundled copy of `@supabase/ssr` for server-side usage to keep Edge bundles small. Leave unset to use the default CDN. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
 | `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
 | `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |
@@ -125,11 +124,6 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - Embed readers can opt into browser push notifications (service worker served from `/push-sw.js`).
 - Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` for web-push support.
 - Publishing an update triggers push payloads automatically; manual broadcasts are available via `POST /api/liveblogs/{id}/broadcast/notify`.
-
-### Supabase Bundles & R2
-- The Supabase server helper is loaded from an external ES module to keep Cloudflare’s worker bundle under 25 MB.
-- By default we use `https://esm.sh/@supabase/ssr@0.5.1?bundle&target=es2022`, but you can host the bundle yourself (for example in Cloudflare R2 + a public Worker URL) and set `SUPABASE_SSR_MODULE_URL` to that endpoint.
-- For client components we still import `@supabase/ssr` directly; only the server runtime depends on the external module.
 
 ### Discord Broadcasts
 - Add a Discord webhook URL in the Livequest settings to mirror updates to a channel (`discord_webhook_url` inside `settings`).
