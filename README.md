@@ -6,7 +6,7 @@ Livequest Studio helps newsrooms and creators cover live events with a fast edit
 - **Studio workspace**: Coverage, Planner, Analytics, and Sponsors tabs keep every liveblog in one place with autosave, scheduling, templating, and row-level security.
 - **Account intelligence**: `/account` surfaces active liveblogs, audience reach, sponsor performance, and referrers so you can spot trends without exporting data.
 - **Sponsorships & monetisation**: Manage reusable sponsor slots, flight windows, and real-time CTR tracking for every placement across embeds.
-- **Realtime storytelling**: Keyboard-first composer, pinning, instant media uploads, Server Actions, SSE embed feeds, voice dictation via OpenAI Whisper mini, and optional push notifications for subscribers.
+- **Realtime storytelling**: Keyboard-first composer, pinning, instant media uploads, Server Actions, SSE embed feeds, and optional push notifications for subscribers.
 - **Team-ready controls**: Supabase auth, privacy modes, folder organisation, concurrency helpers, Discord broadcast webhooks, and scheduled publishing.
 - **Sports integrations**: API-Football sync jobs, match centre templates, and fixtures API endpoints to power scoreboards and pre-built match commentary.
 - **Operational tooling**: Supabase migrations, cron utilities, Sentry instrumentation, and TypeScript components for confident iteration.
@@ -24,6 +24,12 @@ Livequest Studio helps newsrooms and creators cover live events with a fast edit
 - `src/lib`: Data-access utilities (Supabase clients, football integrations, Discord helpers, shared utils).
 - `supabase/migrations`: Database schema (Livequests, updates, analytics, matches, cron helpers) applied through Supabase CLI.
 - `public`: Static assets bundled with Next.js build.
+- `Dockerfile` & `.dockerignore`: Multi-stage image used by the Cloudflare container runtime.
+- `cf-container-worker/`: Worker project that builds, deploys, and manages the container + Durable Object integration.
+
+
+## Documentation
+- Visit [live documentation](https://livequest.app/docs) (or `/docs` locally) for embeds, push notifications, and the operations runbook.
 
 ## Getting Started
 
@@ -46,13 +52,12 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `FOOTBALL_DATA_KEY` | ➖ | Optional Football-Data.org API key for alternative fixture sourcing. |
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
-| `OPENAI_API_KEY` | ➖ | Enables the voice composer by proxying audio to OpenAI `gpt-4o-mini-transcribe`. |
-| `SUPABASE_SSR_MODULE_URL` | ➖ | Optional URL to a bundled `@supabase/ssr` module (e.g. hosted in R2). When set, the bundle is lazy-loaded at runtime to keep the edge worker size small. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
 | `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
 | `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |
+| `NEXT_PUBLIC_INTERCOM_APP_ID` | ➖ | Intercom Messenger app ID (`bbrbwgix` for the shared workspace). |
 
-Voice capture in the live composer is optional but requires `OPENAI_API_KEY`; without it, the microphone controls stay hidden and reporters can continue typing updates normally.
+Voice dictation has been removed; no OpenAI configuration is required.
 
 You may also want to configure Supabase storage bucket `media` (public) for image uploads.
 
@@ -91,7 +96,7 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - `/dashboard` lists every liveblog with folder filters, privacy states, and status chips so you can archive, complete, or delete coverage quickly.
 - Create new liveblogs with templates, default sponsors, and folder assignment directly from the `CreateLiveblogDialog`.
 - Each Livequest ships with four workspaces (`ManageTabs`):
-  - **Coverage**: Keyboard-first composer with autosave, pinning, sponsor assignment, media uploads, and voice dictation backed by OpenAI transcription.
+  - **Coverage**: Keyboard-first composer with autosave, pinning, sponsor assignment, and media uploads.
   - **Planner**: Draft, schedule, or queue updates. Publishing fires Discord broadcasts and optional push notifications.
   - **Analytics**: Real-time uniques, starts, session concurrency, and 24h trends from `viewer_pings` and `analytics_events`.
   - **Sponsors**: Manage reusable sponsor slots, flight windows, creative assets, and live CTR metrics.
@@ -114,6 +119,9 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
   - `data-order` can be `newest` or `oldest`.
 - Embeds fetch `/api/embed/:id/feed`, subscribe to `/api/embed/:id/sse`, and fall back to polling with `data-mode="native"` handled by a Shadow DOM renderer.
 - Analytics pings occur automatically via `/api/embed/:id/track` and feed into Supabase tables.
+  - Feed supports ETag-based conditional GET and cache hints (`stale-while-revalidate`).
+  - CORS can be restricted by setting `EMBED_ALLOW_ORIGINS` (comma-separated origins). Responses set `Vary: Origin`.
+  - A local demo page is available at `/embed-demo.html` to test iframe/native.
 
 ### Sponsorships & Monetisation
 - Sponsor slots live on each liveblog and can be reused across coverage to keep brand assets consistent.
@@ -154,6 +162,38 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
   on conflict (key) do update set value = excluded.value;
   ```
 
+### Cloudflare Container Worker
+The production site runs inside a Cloudflare container that is fronted by a Worker + Durable Object. The worker project lives in `cf-container-worker/` and uses the root `Dockerfile` for builds.
+
+#### Local verification
+```bash
+cd /Users/<you>/Liveblogo
+docker build -t livequest-app .
+docker run --rm -p 3100:3000 \
+  --env-file web/.env.local \
+  livequest-app
+# visit http://localhost:3100
+```
+
+#### Manual deploy
+```bash
+cd cf-container-worker
+npm install            # first run only
+npx wrangler deploy
+```
+
+Wrangler builds a new image, pushes it to Cloudflare’s registry, and publishes the Worker.
+
+#### Monitoring & logs
+```bash
+npx wrangler tail livequest-container-worker --format=pretty
+```
+
+To scale CPU/RAM, change the container `instance_type` in `cf-container-worker/wrangler.toml` (for example `standard-2`) and redeploy. Pricing is usage-based, so you only pay for what actually runs.
+
+#### Optional: external Supabase bundle
+If you ever need to trim the Worker bundle, host a bundled copy of `@supabase/ssr` (for example in R2) and set `SUPABASE_SSR_MODULE_URL` to that URL. When unset, the container loads the library from `node_modules`.
+
 ### Analytics
 - Viewer heartbeats land in `viewer_pings` and session events in `analytics_events` (`supabase/migrations/0002_analytics.sql`).
 - Use `public.count_concurrent_viewers(liveblog_id)` (`0003_concurrent_viewers.sql`) to calculate active sessions in the last 30 seconds.
@@ -164,16 +204,18 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - Sentry is optional but recommended. Supply a `SENTRY_DSN` to enable automatic tracing wrapped around database calls (`src/app/api/embed/[id]/feed/route.ts` and `src/instrumentation.ts`).
 
 ## Deployment
-- Vercel is the recommended host. Set all required environment variables in the project settings (do not expose server-only secrets client-side).
-- Add Supabase service role and cron secrets as encrypted environment variables only used in server functions.
-- Provision the same storage buckets and run `supabase migration up` against production before the first deploy.
-- Use `npm run build` locally or rely on Vercel’s build step (`next build --turbopack`).
+- Production runs on Cloudflare Containers via `cf-container-worker/`.
+- Ensure required secrets are stored with `npx wrangler secret put …` (service role, Stripe, etc.).
+- To deploy: `cd cf-container-worker && npx wrangler deploy`.
+- Container size can be tuned via `instance_type` (`lite`, `standard-1`, `standard-2`, …). Larger classes improve SSR performance but cost more while running.
+- Supabase migrations must be applied to production before deploying new schema-dependent changes.
 
 ## Useful Scripts
 - `npm run dev` – Turbopack dev server with hot reload.
 - `npm run build` – Production bundle.
 - `npm run start` – Serve production bundle locally.
 - `npm run lint` – ESLint (runs against `src`).
+- `npx wrangler deploy` (from `cf-container-worker/`) – Build and publish the container/Worker.
 
 ## Tips & Troubleshooting
 - Keep `.env.local` out of version control; use `.env.example` with placeholders if you need to share configuration with collaborators.

@@ -1,0 +1,22 @@
+{
+  "name": "cf-container-worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@cloudflare/containers": "^0.0.28",
+    "@intercom/messenger-js-sdk": "^0.0.18"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251014.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.45.0"
+  }
+}

@@ -1,0 +1,29 @@
+name = "livequest-container-worker"
+main = "dist/index.js"
+compatibility_date = "2024-10-24"
+
+[build]
+command = "npx tsc"
+
+[[containers]]
+class_name = "LivequestContainer"
+image = "../Dockerfile"
+max_instances = 3
+instance_type = "standard-2"
+
+
+[[durable_objects.bindings]]
+name = "LIVEQUEST_CONTAINER"
+class_name = "LivequestContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LivequestContainer"]
+[vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://yjcoinrerbshwmkmlytx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIs..."
+NEXT_PUBLIC_VAPID_PUBLIC_KEY = "BF4hO2XK..."
+NEXT_PUBLIC_SITE_URL = "https://livequest.app"
+STRIPE_PRICE_MONTHLY = "price_1SLT00Ccxq3aaz6Hw5LITMjR"
+VAPID_SUBJECT = "mailto:hello@livequest.app"
+

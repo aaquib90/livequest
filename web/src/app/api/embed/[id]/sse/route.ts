@@ -1,5 +1,6 @@
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from '@/lib/embed/cors';
 import { createClient } from '@/lib/supabase/serverClient';
 
 export const runtime = 'edge';
@@ -8,6 +9,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
+  const baseCors = embedResponseCorsHeaders(_req);
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -37,15 +39,17 @@ export async function GET(
   return new NextResponse(stream, {
     status: 200,
     headers: {
+      ...baseCors,
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
     },
   });
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS' } });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: embedPreflightCorsHeaders(req, { methods: ['GET', 'OPTIONS'] }),
+  });
 }
-

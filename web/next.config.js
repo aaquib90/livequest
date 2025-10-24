@@ -1,7 +1,5 @@
-import type { NextConfig } from "next";
-// Sentry wrapper not supported in current Next.js version, init via sentry.*.config
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   /* config options here */
   experimental: {
     optimizePackageImports: ["lucide-react"],
@@ -19,4 +17,5 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 };
-export default nextConfig;
+
+module.exports = nextConfig;

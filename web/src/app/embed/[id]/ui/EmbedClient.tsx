@@ -281,8 +281,29 @@ export default function EmbedClient({
 
   function recordSponsorClick(slot: SponsorSlot, targetUrl: string) {
     if (!slot?.id) return;
+    // Deduplicate per session+slot within this view
+    const clickKey = `${slot.id}:${sessionId}:clicked`;
+    try {
+      const seen = typeof window !== 'undefined' ? window.sessionStorage.getItem(clickKey) : null;
+      if (!seen) {
+        window.sessionStorage.setItem(clickKey, '1');
+      } else {
+        // still track analytics event but skip server write to avoid duplicates
+        trackEvent("sponsor_click_dedup", { slotId: slot.id });
+        return;
+      }
+    } catch {}
     trackEvent("sponsor_click", { slotId: slot.id });
     try {
+      // Attach simple UTM/referrer enrichment
+      let enrichedUrl = targetUrl;
+      try {
+        const u = new URL(targetUrl);
+        if (!u.searchParams.has('utm_source')) u.searchParams.set('utm_source', 'livequest_embed');
+        if (!u.searchParams.has('utm_medium')) u.searchParams.set('utm_medium', analyticsMode || 'page');
+        if (!u.searchParams.has('utm_campaign') && slot.name) u.searchParams.set('utm_campaign', slot.name);
+        enrichedUrl = u.toString();
+      } catch {}
       fetch(`/api/embed/${liveblogId}/sponsors/click`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -291,7 +312,7 @@ export default function EmbedClient({
           sessionId,
           deviceId,
           mode: analyticsMode !== "pending" ? analyticsMode : undefined,
-          targetUrl,
+          targetUrl: enrichedUrl,
         }),
       }).catch(() => {});
     } catch {}

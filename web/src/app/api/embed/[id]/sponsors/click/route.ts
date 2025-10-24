@@ -1,17 +1,26 @@
 import { NextResponse } from "next/server";
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from "@/lib/embed/cors";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const baseCors = embedResponseCorsHeaders(req);
+  const responseHeaders = {
+    ...baseCors,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
   try {
     const liveblogId = params.id;
-    if (!liveblogId) return NextResponse.json({ error: "bad_request" }, { status: 400, headers: cors() });
+    if (!liveblogId) {
+      return NextResponse.json({ error: "bad_request" }, { status: 400, headers: responseHeaders });
+    }
 
     const payload = await req.json().catch(() => ({}));
     const slotId = typeof payload?.slotId === "string" ? payload.slotId : "";
     if (!slotId) {
-      return NextResponse.json({ error: "invalid_slot" }, { status: 400, headers: cors() });
+      return NextResponse.json({ error: "invalid_slot" }, { status: 400, headers: responseHeaders });
     }
     const sessionId = typeof payload?.sessionId === "string" ? payload.sessionId : null;
     const deviceId = typeof payload?.deviceId === "string" ? payload.deviceId : null;
@@ -29,25 +38,23 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500, headers: cors() });
+      return NextResponse.json({ error: error.message }, { status: 500, headers: responseHeaders });
     }
-    return NextResponse.json({ ok: true }, { status: 200, headers: cors() });
+    return NextResponse.json({ ok: true }, { status: 200, headers: responseHeaders });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "server_error" },
-      { status: 500, headers: cors() },
+      { status: 500, headers: responseHeaders },
     );
   }
 }
 
-function cors() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: cors() });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: embedPreflightCorsHeaders(req, {
+      methods: ["POST", "OPTIONS"],
+      headers: ["Content-Type"],
+    }),
+  });
 }

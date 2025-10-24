@@ -4,6 +4,7 @@ import Script from "next/script";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 import Chrome from "@/components/Chrome";
+import IntercomMessenger from "@/components/IntercomMessenger";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
@@ -107,6 +108,7 @@ export default function RootLayout({
             <Chrome>{children}</Chrome>
           </div>
         </ThemeProvider>
+        <IntercomMessenger />
       </body>
     </html>
   );

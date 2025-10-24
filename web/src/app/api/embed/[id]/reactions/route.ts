@@ -1,33 +1,40 @@
 import { NextResponse } from 'next/server';
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from '@/lib/embed/cors';
 import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
-function cors() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  } as Record<string, string>;
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: cors() });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: embedPreflightCorsHeaders(req, {
+      methods: ['POST', 'OPTIONS'],
+      headers: ['Content-Type'],
+    }),
+  });
 }
 
 type ReactionType = 'smile' | 'heart' | 'thumbs_up';
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const baseCors = embedResponseCorsHeaders(req);
+  const responseHeaders = {
+    ...baseCors,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
   try {
     const liveblogId = params.id;
-    if (!liveblogId) return NextResponse.json({ error: 'bad_request' }, { status: 400, headers: cors() });
+    if (!liveblogId) {
+      return NextResponse.json({ error: 'bad_request' }, { status: 400, headers: responseHeaders });
+    }
 
     const body = await req.json().catch(() => ({}));
     const updateId = String(body?.updateId || '');
     const type: ReactionType = body?.type;
     const deviceId = String(body?.deviceId || '');
     if (!updateId || !deviceId || !['smile','heart','thumbs_up'].includes(String(type))) {
-      return NextResponse.json({ error: 'invalid_payload' }, { status: 400, headers: cors() });
+      return NextResponse.json({ error: 'invalid_payload' }, { status: 400, headers: responseHeaders });
     }
 
     // Validate that update belongs to liveblog and liveblog is public/unlisted
@@ -39,7 +46,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       single: true,
     });
     if (!lb || lb.status !== 'active' || !['public','unlisted'].includes(lb.privacy)) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403, headers: cors() });
+      return NextResponse.json({ error: 'forbidden' }, { status: 403, headers: responseHeaders });
     }
     const up = await supabaseEnsure<{ id: string; liveblog_id: string } | null>(req, {
       action: 'select',
@@ -52,7 +59,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       single: true,
     });
     if (!up) {
-      return NextResponse.json({ error: 'not_found' }, { status: 404, headers: cors() });
+      return NextResponse.json({ error: 'not_found' }, { status: 404, headers: responseHeaders });
     }
 
     const userAgent = (req.headers.get('user-agent') || '').slice(0, 512);
@@ -97,9 +104,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const counts = await getCounts(req, updateId);
     const active = await getActiveMap(req, updateId, device_hash);
 
-    return NextResponse.json({ ok: true, counts, active }, { status: 200, headers: cors() });
+    return NextResponse.json({ ok: true, counts, active }, { status: 200, headers: responseHeaders });
   } catch {
-    return NextResponse.json({ ok: false }, { status: 200, headers: cors() });
+    return NextResponse.json({ ok: false }, { status: 200, headers: responseHeaders });
   }
 }
 
@@ -110,16 +117,17 @@ async function sha256(input: string) {
 }
 
 async function getCounts(req: Request, updateId: string) {
-  const data = await supabaseEnsure<Array<{ reaction: ReactionType; count: number }>>(req, {
+  const data = await supabaseEnsure<Array<{ reaction: ReactionType; count: number | null }>>(req, {
     action: 'select',
     table: 'update_reactions',
     columns: 'reaction, count:count(*)',
     filters: [{ column: 'update_id', op: 'eq', value: updateId }],
     group: 'reaction',
   });
-  const base = { smile: 0, heart: 0, thumbs_up: 0 } as Record<ReactionType, number>;
+  const base: Record<ReactionType, number> = { smile: 0, heart: 0, thumbs_up: 0 };
   for (const row of data || []) {
-    base[row.reaction as ReactionType] = Number((row as any).count || 0);
+    const { reaction, count } = row;
+    base[reaction] = Number(count ?? 0);
   }
   return base;
 }
@@ -134,10 +142,9 @@ async function getActiveMap(req: Request, updateId: string, device_hash: string)
       { column: 'device_hash', op: 'eq', value: device_hash },
     ],
   });
-  const map = { smile: false, heart: false, thumbs_up: false } as Record<ReactionType, boolean>;
+  const map: Record<ReactionType, boolean> = { smile: false, heart: false, thumbs_up: false };
   for (const row of data || []) {
-    map[row.reaction as ReactionType] = true;
+    map[row.reaction] = true;
   }
   return map;
 }
-

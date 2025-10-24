@@ -182,12 +182,12 @@ export default async function Home() {
   const logoUrl =
     "https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(500%20x%20500%20px).svg";
   const metrics = await getMarketingMetrics();
-  const uniqueViewers = integerFormatter.format(Math.max(metrics.total_unique_viewers, 0));
-  const totalViews = integerFormatter.format(Math.max(metrics.total_views, 0));
-  const totalInteractions = integerFormatter.format(Math.max(metrics.total_interactions, 0));
-  const sponsorCtr = percentFormatter.format(Math.max(metrics.sponsor_ctr, 0));
-  const sponsorImpressions = integerFormatter.format(Math.max(metrics.sponsor_impressions, 0));
-  const sponsorClicks = integerFormatter.format(Math.max(metrics.sponsor_clicks, 0));
+  const hasMarketingMetrics =
+    metrics.total_unique_viewers > 0 ||
+    metrics.total_views > 0 ||
+    metrics.total_interactions > 0 ||
+    metrics.sponsor_impressions > 0 ||
+    metrics.sponsor_clicks > 0;
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -263,25 +263,36 @@ export default async function Home() {
               </span>
             ))}
           </div>
-          <div className="mt-12 grid w-full gap-6 text-left sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Total unique viewers</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{uniqueViewers}</p>
-              <p className="text-xs text-muted-foreground">{totalViews} total views recorded</p>
+          {hasMarketingMetrics ? (
+            <div className="mt-12 grid w-full gap-6 text-left sm:grid-cols-3">
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
+                <p className="text-sm text-muted-foreground">Total unique viewers</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {integerFormatter.format(Math.max(metrics.total_unique_viewers, 0))}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {integerFormatter.format(Math.max(metrics.total_views, 0))} total views recorded
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
+                <p className="text-sm text-muted-foreground">Interactions captured</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {integerFormatter.format(Math.max(metrics.total_interactions, 0))}
+                </p>
+                <p className="text-xs text-muted-foreground">Starts, reactions, and sponsor activity</p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
+                <p className="text-sm text-muted-foreground">Sponsor CTR</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {percentFormatter.format(Math.max(metrics.sponsor_ctr, 0))}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {integerFormatter.format(Math.max(metrics.sponsor_impressions, 0))} impressions ·{" "}
+                  {integerFormatter.format(Math.max(metrics.sponsor_clicks, 0))} clicks
+                </p>
+              </div>
             </div>
-            <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Interactions captured</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{totalInteractions}</p>
-              <p className="text-xs text-muted-foreground">Starts, reactions, and sponsor activity</p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-background/60 p-5 backdrop-blur">
-              <p className="text-sm text-muted-foreground">Sponsor CTR</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{sponsorCtr}</p>
-              <p className="text-xs text-muted-foreground">
-                {sponsorImpressions} impressions · {sponsorClicks} clicks
-              </p>
-            </div>
-          </div>
+          ) : null}
         </div>
       </section>
 

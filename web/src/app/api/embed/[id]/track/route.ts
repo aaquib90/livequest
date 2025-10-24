@@ -1,21 +1,26 @@
 import { NextResponse } from 'next/server';
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from '@/lib/embed/cors';
 import { createClient } from '@/lib/supabase/serverClient';
 
 export const runtime = 'edge';
 
-function cors() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  } as Record<string, string>;
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: cors() });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: embedPreflightCorsHeaders(req, {
+      methods: ['POST', 'OPTIONS'],
+      headers: ['Content-Type'],
+    }),
+  });
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const baseCors = embedResponseCorsHeaders(req);
+  const responseHeaders = {
+    ...baseCors,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
   try {
     const supabase = await createClient();
     const body = await req.json().catch(() => ({}));
@@ -26,7 +31,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const ipHash = await sha256(ip);
 
     if (!params.id || !sessionId) {
-      return NextResponse.json({ error: 'bad_request' }, { status: 400, headers: cors() });
+      return NextResponse.json(
+        { error: 'bad_request' },
+        { status: 400, headers: responseHeaders },
+      );
     }
 
     if (event === 'ping') {
@@ -35,9 +43,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       await supabase.from('analytics_events').insert({ liveblog_id: params.id, session_id: String(sessionId), event: String(event), metadata: metadata ?? null });
     }
 
-    return NextResponse.json({ ok: true }, { status: 200, headers: cors() });
+    return NextResponse.json({ ok: true }, { status: 200, headers: responseHeaders });
   } catch {
-    return NextResponse.json({ ok: false }, { status: 200, headers: cors() });
+    return NextResponse.json({ ok: false }, { status: 200, headers: responseHeaders });
   }
 }
 
@@ -46,5 +54,4 @@ async function sha256(input: string) {
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-
 

@@ -118,7 +118,14 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
           <div className="flex flex-wrap gap-4">
             <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy</Link>
             <Link href="/terms" className="transition-colors hover:text-foreground">Terms</Link>
-            <Link href="mailto:hello@livequest.app" className="transition-colors hover:text-foreground">Contact</Link>
+            <Link href="/docs" className="transition-colors hover:text-foreground">Documentation</Link>
+            <button
+              type="button"
+              onClick={() => window.Intercom?.("show")}
+              className="text-left transition-colors hover:text-foreground"
+            >
+              Contact
+            </button>
           </div>
         </div>
       </footer>

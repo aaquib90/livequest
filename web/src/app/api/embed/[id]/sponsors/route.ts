@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from "@/lib/embed/cors";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } },
 ) {
+  const baseCors = embedResponseCorsHeaders(req);
+  const responseHeaders = {
+    ...baseCors,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
   try {
     const liveblogId = params.id;
     if (!liveblogId) {
-      return NextResponse.json({ error: "bad_request" }, { status: 400, headers: cors() });
+      return NextResponse.json({ error: "bad_request" }, { status: 400, headers: responseHeaders });
     }
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -23,7 +30,7 @@ export async function GET(
       .order("starts_at", { ascending: true, nullsFirst: true })
       .limit(20);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500, headers: cors() });
+      return NextResponse.json({ error: error.message }, { status: 500, headers: responseHeaders });
     }
 
     const now = Date.now();
@@ -39,23 +46,21 @@ export async function GET(
       return status === "active";
     });
 
-    return NextResponse.json({ slots }, { status: 200, headers: cors() });
+    return NextResponse.json({ slots }, { status: 200, headers: responseHeaders });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "server_error" },
-      { status: 500, headers: cors() },
+      { status: 500, headers: responseHeaders },
     );
   }
 }
 
-function cors() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: cors() });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: embedPreflightCorsHeaders(req, {
+      methods: ["GET", "OPTIONS"],
+      headers: ["Content-Type"],
+    }),
+  });
 }

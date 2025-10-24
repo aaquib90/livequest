@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Activity, ArrowLeft, ArrowUpRight, Gauge, LineChart } from "lucide-react";
@@ -25,7 +25,15 @@ import { createClient } from "@/lib/supabase/browserClient";
 import {
   fetchAccountAnalytics,
   type AccountAnalyticsResult,
+  type TopLiveblogRow,
 } from "../lib/fetchAccountAnalytics";
+
+type EnhancedLiveblog = TopLiveblogRow & {
+  viewers: number;
+  starts: number;
+  updates: number;
+  interactions: number;
+};
 
 const integerFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 0,
@@ -36,19 +44,9 @@ const percentFormatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
 });
 
-const dayFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-});
-
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
   timeStyle: "short",
-});
-const shortDayFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
 });
 
 export default function AnalyticsDashboardClient() {
@@ -119,7 +117,14 @@ export default function AnalyticsDashboardClient() {
   const sessionsPerViewer = unique30d > 0 ? sessions30d / unique30d : 0;
   const startConversion = sessions30d > 0 ? (starts30d / sessions30d) * 100 : 0;
 
-  const chartData = useMemo(
+  const [chartRange, setChartRange] = useState<"7d" | "14d" | "30d" | "all">("14d");
+  const [visibleSeries, setVisibleSeries] = useState({
+    uniques: true,
+    sessions: true,
+    starts: true,
+  });
+
+  const rawChartData = useMemo(
     () =>
       timeseries.map((row) => ({
         date: row.day,
@@ -129,6 +134,50 @@ export default function AnalyticsDashboardClient() {
       })),
     [timeseries]
   );
+
+  const chartRangeOptions = useMemo(() => {
+    const length = rawChartData.length;
+    const options: Array<{ value: "7d" | "14d" | "30d" | "all"; label: string }> = [];
+    if (length >= 7) options.push({ value: "7d", label: "7 days" });
+    if (length >= 14) options.push({ value: "14d", label: "14 days" });
+    if (length >= 30) options.push({ value: "30d", label: "30 days" });
+    options.push({ value: "all", label: "All time" });
+    return options;
+  }, [rawChartData.length]);
+
+  useEffect(() => {
+    if (!chartRangeOptions.length) return;
+    const preferred =
+      chartRangeOptions.find((option) => option.value === "14d")?.value ??
+      chartRangeOptions[0]?.value ??
+      "all";
+    setChartRange((current) => {
+      const valid = chartRangeOptions.some((option) => option.value === current);
+      return valid ? current : preferred;
+    });
+  }, [chartRangeOptions]);
+
+  const chartData = useMemo(() => {
+    if (!rawChartData.length) return [];
+    if (chartRange === "all") return rawChartData;
+    const count = parseInt(chartRange, 10);
+    const sliceCount = Number.isFinite(count) && count > 0 ? Math.min(count, rawChartData.length) : rawChartData.length;
+    return rawChartData.slice(-sliceCount);
+  }, [rawChartData, chartRange]);
+
+  const toggleSeriesVisibility = useCallback((key: keyof typeof visibleSeries) => {
+    setVisibleSeries((prev) => {
+      const currentlyActive = prev[key];
+      const activeCount = Object.values(prev).filter(Boolean).length;
+      if (currentlyActive && activeCount <= 1) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [key]: !currentlyActive,
+      };
+    });
+  }, []);
 
   const chartConfig = useMemo<ChartConfig>(
     () => ({
@@ -147,6 +196,61 @@ export default function AnalyticsDashboardClient() {
     }),
     []
   );
+
+  const chartRangeLabel = useMemo(() => {
+    if (chartRange === "all") return "All time";
+    const days = parseInt(chartRange, 10);
+    return `Last ${days} day${days === 1 ? "" : "s"}`;
+  }, [chartRange]);
+
+  const chartSeriesOptions = useMemo(
+    () => [
+      { key: "uniques" as const, label: "Uniques" },
+      { key: "sessions" as const, label: "Sessions" },
+      { key: "starts" as const, label: "Starts" },
+    ],
+    []
+  );
+
+  const enhancedLiveblogs = useMemo<EnhancedLiveblog[]>(() => {
+    return topLiveblogs.map((lb) => {
+      const viewers = Number(lb.unique_viewers ?? 0);
+      const starts = Number(lb.starts ?? 0);
+      const updates = Number(lb.updates_published ?? 0);
+      const interactions = viewers + starts + updates;
+      return {
+        ...lb,
+        viewers,
+        starts,
+        updates,
+        interactions,
+      } as EnhancedLiveblog;
+    });
+  }, [topLiveblogs]);
+
+  const sortedTopLiveblogs = useMemo(() => {
+    return [...enhancedLiveblogs].sort((a, b) => b.interactions - a.interactions);
+  }, [enhancedLiveblogs]);
+
+  const highlightLiveblog = sortedTopLiveblogs[0] ?? null;
+  const remainingLiveblogs = useMemo(
+    () => sortedTopLiveblogs.slice(1),
+    [sortedTopLiveblogs]
+  );
+
+  const [expandedLiveblogId, setExpandedLiveblogId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (highlightLiveblog?.liveblog_id) {
+      setExpandedLiveblogId((current) =>
+        current === null ? highlightLiveblog.liveblog_id : current
+      );
+    }
+  }, [highlightLiveblog?.liveblog_id]);
+
+  const toggleLiveblogDetails = useCallback((id: string) => {
+    setExpandedLiveblogId((current) => (current === id ? null : id));
+  }, []);
 
   const totalReferrerSessions = useMemo(
     () => referrers.reduce((sum, row) => sum + Number(row.sessions ?? 0), 0),
@@ -167,8 +271,97 @@ export default function AnalyticsDashboardClient() {
           <CardContent className="h-48 animate-pulse" />
         </Card>
       </div>
-    );
-  }
+  );
+}
+
+type LeaderboardRowProps = {
+  rank: number;
+  liveblog: EnhancedLiveblog;
+  isExpanded: boolean;
+  onToggle: (id: string) => void;
+  highlight?: boolean;
+};
+
+function LeaderboardRow({
+  rank,
+  liveblog,
+  isExpanded,
+  onToggle,
+  highlight = false,
+}: LeaderboardRowProps) {
+  const containerClasses = highlight
+    ? "space-y-3 rounded-2xl border border-primary/50 bg-primary/5 p-5"
+    : "space-y-3 rounded-2xl border border-border/60 bg-background/60 p-4";
+
+  const toggleLabel = isExpanded ? "Hide details" : "View details";
+
+  return (
+    <div className={containerClasses}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-border/40 px-2 py-1 text-[11px] uppercase text-muted-foreground">
+              #{rank}
+            </span>
+            <p className="text-sm font-medium text-foreground">
+              {liveblog.liveblog_title || "Untitled liveblog"}
+            </p>
+            {highlight ? (
+              <Badge variant="muted" className="uppercase">
+                Peak
+              </Badge>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Last published{" "}
+            {liveblog.last_published_at
+              ? dateTimeFormatter.format(new Date(liveblog.last_published_at))
+              : "—"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 font-medium text-primary">
+            {integerFormatter.format(liveblog.interactions)} interactions
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant={highlight ? "secondary" : "outline"}
+            className="h-7 rounded-full px-3 text-[11px]"
+            onClick={() => onToggle(liveblog.liveblog_id)}
+          >
+            {toggleLabel}
+          </Button>
+        </div>
+      </div>
+      {isExpanded ? (
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-1">
+            <Gauge className="h-3 w-3" />
+            {integerFormatter.format(liveblog.viewers)} viewers
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-1">
+            Starts {integerFormatter.format(liveblog.starts)}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-1">
+            Updates {integerFormatter.format(liveblog.updates)}
+          </span>
+          <Button
+            asChild
+            size="sm"
+            variant={highlight ? "secondary" : "ghost"}
+            className="h-7 rounded-full px-3 text-[11px]"
+          >
+            <Link href={`/liveblogs/${liveblog.liveblog_id}/manage`}>
+              Manage
+              <ArrowUpRight className="ml-1.5 h-3 w-3" />
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -218,118 +411,7 @@ export default function AnalyticsDashboardClient() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Unique viewers (30d)</CardTitle>
-            <CardDescription>Distinct sessions recorded across all liveblogs.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-4xl font-semibold text-foreground">
-              {integerFormatter.format(unique30d)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {integerFormatter.format(summary.unique_viewers_7d ?? 0)} in the last 7 days.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Sessions recorded (30d)</CardTitle>
-            <CardDescription>
-              Heartbeat pings that indicate dwell time and repeat visits.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-4xl font-semibold text-foreground">
-              {integerFormatter.format(sessions30d)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Avg {percentFormatter.format(sessionsPerViewer)} sessions per viewer.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Starts (30d)</CardTitle>
-            <CardDescription>Moments a viewer intentionally opened a liveblog experience.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-4xl font-semibold text-foreground">
-              {integerFormatter.format(starts30d)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {percentFormatter.format(startConversion)}% of sessions converted to starts.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Sponsor performance (30d)</CardTitle>
-            <CardDescription>
-              Combined CTR across every placement with click tracking enabled.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-4xl font-semibold text-foreground">
-              {percentFormatter.format(sponsorCtr)}%
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {integerFormatter.format(summary.sponsor_impressions_30d ?? 0)} impressions ·{' '}
-              {integerFormatter.format(summary.sponsor_clicks_30d ?? 0)} clicks
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Active liveblogs</CardTitle>
-            <CardDescription>
-              Coverage currently published or in progress across your workspace.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-baseline gap-3">
-            <span className="text-4xl font-semibold text-foreground">
-              {integerFormatter.format(activeLiveblogs)}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              of {integerFormatter.format(totalLiveblogs)} total
-            </span>
-          </CardContent>
-        </Card>
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Archived library</CardTitle>
-            <CardDescription>
-              Completed or locked liveblogs kept for reference and sponsor reporting.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-baseline gap-3">
-            <span className="text-4xl font-semibold text-foreground">
-              {integerFormatter.format(archivedLiveblogs)}
-            </span>
-            <span className="text-sm text-muted-foreground">archived liveblogs</span>
-          </CardContent>
-        </Card>
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Folders in use</CardTitle>
-            <CardDescription>
-              Organise coverage with shared taxonomy to keep the newsroom aligned.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-baseline gap-3">
-            <span className="text-4xl font-semibold text-foreground">
-              {integerFormatter.format(uniqueFolders)}
-            </span>
-            <span className="text-sm text-muted-foreground">labelled folders</span>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+      <div className="grid gap-6">
         <Card className="border-border/70 bg-background/50">
           <CardHeader className="space-y-4">
             <div className="flex items-center gap-3">
@@ -338,164 +420,189 @@ export default function AnalyticsDashboardClient() {
               </Badge>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <LineChart className="h-4 w-4" />
-                Last 14 days
+                {chartRangeLabel}
               </div>
             </div>
             <CardTitle className="text-2xl">Audience trajectory</CardTitle>
-          <CardDescription className="text-base">
-            Track how reach evolves each day to identify news cycles that resonate. Spikes can hint
-            at traffic partners worth nurturing.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {chartData.length ? (
-            <ChartContainer config={chartConfig} className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 16, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="fillUniques" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--chart-uniques)" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="var(--chart-uniques)" stopOpacity={0.05} />
-                    </linearGradient>
-                    <linearGradient id="fillSessions" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--chart-sessions)" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="var(--chart-sessions)" stopOpacity={0.05} />
-                    </linearGradient>
-                    <linearGradient id="fillStarts" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--chart-starts)" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="var(--chart-starts)" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="4 8"
-                    className="stroke-border/60"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(value) => shortDayFormatter.format(new Date(value))}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                    dy={8}
-                    minTickGap={16}
-                  />
-                  <YAxis hide domain={[0, (dataMax: number) => dataMax * 1.2]} />
-                  <ChartTooltip
-                    cursor={{ strokeDasharray: "4 4", stroke: "hsl(var(--border))" }}
-                    content={
-                      <ChartTooltipContent
-                        labelFormatter={(value) =>
-                          typeof value === "string"
-                            ? dayFormatter.format(new Date(value))
-                            : value
-                        }
-                        valueFormatter={(value) =>
-                          typeof value === "number"
-                            ? integerFormatter.format(Math.max(value, 0))
-                            : value
-                        }
-                      />
-                    }
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="uniques"
-                    stroke="var(--chart-uniques)"
-                    strokeWidth={2.4}
-                    fill="url(#fillUniques)"
-                    activeDot={{ r: 4 }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="sessions"
-                    stroke="var(--chart-sessions)"
-                    strokeWidth={2}
-                    fill="url(#fillSessions)"
-                    activeDot={{ r: 4 }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="starts"
-                    stroke="var(--chart-starts)"
-                    strokeWidth={2}
-                    fill="url(#fillStarts)"
-                    activeDot={{ r: 4 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          ) : (
-            <div className="h-24 w-full rounded-xl border border-dashed border-border/60" />
-          )}
-          <div className="space-y-3">
-            {timeseries.slice(-7).map((row) => (
-              <div
-                key={row.day}
-                className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm"
-              >
-                <span className="text-foreground">{dayFormatter.format(new Date(row.day))}</span>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <Gauge className="h-3.5 w-3.5" />
-                    {integerFormatter.format(row.unique_viewers ?? 0)} viewers
-                  </span>
-                  <span>{integerFormatter.format(row.sessions ?? 0)} sessions</span>
-                  <span>{integerFormatter.format(row.starts ?? 0)} starts</span>
+            <CardDescription className="text-base">
+              Track how reach evolves each day to identify news cycles that resonate. Spikes can hint
+              at traffic partners worth nurturing.
+            </CardDescription>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                Range:
+                <div className="inline-flex items-center gap-1">
+                  {chartRangeOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      size="sm"
+                      variant={chartRange === option.value ? "default" : "outline"}
+                      className="h-7 rounded-full px-3 text-[11px]"
+                      onClick={() => setChartRange(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader className="space-y-4">
-            <Badge variant="outline" className="w-fit">
-              Engagement
-            </Badge>
-            <CardTitle className="text-2xl">Session characteristics</CardTitle>
-            <CardDescription className="text-base">
-              Understand repeat visit behaviour and the ratio of sessions to deliberate starts to
-              fine-tune retention.
-            </CardDescription>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                Series:
+                <div className="inline-flex items-center gap-1">
+                  {chartSeriesOptions.map((option) => {
+                    const active = visibleSeries[option.key];
+                    return (
+                      <Button
+                        key={option.key}
+                        type="button"
+                        size="sm"
+                        variant={active ? "default" : "outline"}
+                        className="h-7 rounded-full px-3 text-[11px]"
+                        onClick={() => toggleSeriesVisibility(option.key)}
+                        aria-pressed={active}
+                      >
+                        {option.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-foreground">Sessions per unique</span>
-                <span className="text-xs text-muted-foreground">30 day window</span>
+          <CardContent className="space-y-6">
+            {chartData.length ? (
+              <ChartContainer config={chartConfig} className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 16, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="fillUniques" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--chart-uniques)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--chart-uniques)" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="fillSessions" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--chart-sessions)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--chart-sessions)" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="fillStarts" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--chart-starts)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--chart-starts)" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="4 8"
+                      className="stroke-border/60"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                      }}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                      dy={8}
+                      minTickGap={16}
+                    />
+                    <YAxis hide domain={[0, (dataMax: number) => dataMax * 1.2]} />
+                    <ChartTooltip
+                      cursor={{ strokeDasharray: "4 4", stroke: "hsl(var(--border))" }}
+                      content={
+                        <ChartTooltipContent
+                          indicator="line"
+                          className="bg-background/90"
+                          labelFormatter={(value) =>
+                            typeof value === "string"
+                              ? new Intl.DateTimeFormat(undefined, {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }).format(new Date(value))
+                              : value
+                          }
+                          valueFormatter={(value) =>
+                            typeof value === "number"
+                              ? integerFormatter.format(Math.max(value, 0))
+                              : value
+                          }
+                        />
+                      }
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="uniques"
+                      stroke="var(--chart-uniques)"
+                      strokeWidth={2.4}
+                      fill="url(#fillUniques)"
+                      activeDot={{ r: 4 }}
+                      hide={!visibleSeries.uniques}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="sessions"
+                      stroke="var(--chart-sessions)"
+                      strokeWidth={2}
+                      fill="url(#fillSessions)"
+                      activeDot={{ r: 4 }}
+                      hide={!visibleSeries.sessions}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="starts"
+                      stroke="var(--chart-starts)"
+                      strokeWidth={2}
+                      fill="url(#fillStarts)"
+                      activeDot={{ r: 4 }}
+                      hide={!visibleSeries.starts}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-24 w-full rounded-xl border border-dashed border-border/60" />
+            )}
+            <div className="space-y-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Top liveblogs
               </div>
-              <p className="mt-2 text-3xl font-semibold text-foreground">
-                {percentFormatter.format(sessionsPerViewer)}×
-              </p>
-              <p className="text-xs text-muted-foreground">
-                High repeat sessions indicate sticky storytelling or rolling coverage.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-foreground">Start conversion</span>
-                <span className="text-xs text-muted-foreground">Sessions → starts</span>
-              </div>
-              <p className="mt-2 text-3xl font-semibold text-foreground">
-                {percentFormatter.format(startConversion)}%
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Pair this with referral data to spot channels that produce the most engaged readers.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-foreground">Published updates</span>
-                <span className="text-xs text-muted-foreground">All time</span>
-              </div>
-              <p className="mt-2 text-3xl font-semibold text-foreground">
-                {integerFormatter.format(summary.total_updates ?? 0)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Use this as a guardrail for newsroom output across formats and beats.
-              </p>
+              {sortedTopLiveblogs.slice(0, 3).map((lb, index) => (
+                <div
+                  key={lb.liveblog_id}
+                  className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm"
+                >
+                  <div className="flex flex-col gap-1 text-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-border/40 px-2 py-1 text-[11px] uppercase text-muted-foreground">
+                        #{index + 1}
+                      </span>
+                      <span className="font-medium">
+                        {lb.liveblog_title || "Untitled liveblog"}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {lb.last_published_at
+                        ? `Last published ${dateTimeFormatter.format(new Date(lb.last_published_at))}`
+                        : "No published updates yet"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 font-medium text-primary">
+                      {integerFormatter.format(lb.interactions)} interactions
+                    </span>
+                    <span className="flex gap-3">
+                      <span>{integerFormatter.format(lb.viewers)} viewers</span>
+                      <span>{integerFormatter.format(lb.starts)} starts</span>
+                      <span>{integerFormatter.format(lb.updates)} updates</span>
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {!sortedTopLiveblogs.length ? (
+                <p className="text-xs text-muted-foreground">
+                  Publish a liveblog to start collecting performance data.
+                </p>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -513,48 +620,27 @@ export default function AnalyticsDashboardClient() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {topLiveblogs.length ? (
-              topLiveblogs.map((lb) => (
-                <div
-                  key={lb.liveblog_id}
-                  className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {lb.liveblog_title || "Untitled liveblog"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Last published{' '}
-                      {lb.last_published_at
-                        ? dateTimeFormatter.format(new Date(lb.last_published_at))
-                        : "—"}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border/40 px-2 py-1">
-                      <Gauge className="h-3 w-3" />
-                      {integerFormatter.format(lb.unique_viewers ?? 0)} viewers
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border/40 px-2 py-1">
-                      Starts {integerFormatter.format(lb.starts ?? 0)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border/40 px-2 py-1">
-                      Updates {integerFormatter.format(lb.updates_published ?? 0)}
-                    </span>
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 rounded-full px-3 text-[11px]"
-                    >
-                      <Link href={`/liveblogs/${lb.liveblog_id}/manage`}>
-                        Manage
-                        <ArrowUpRight className="ml-1.5 h-3 w-3" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))
+            {sortedTopLiveblogs.length ? (
+              <>
+                {highlightLiveblog ? (
+                  <LeaderboardRow
+                    rank={1}
+                    liveblog={highlightLiveblog}
+                    isExpanded={expandedLiveblogId === highlightLiveblog.liveblog_id}
+                    onToggle={toggleLiveblogDetails}
+                    highlight
+                  />
+                ) : null}
+                {remainingLiveblogs.map((lb, index) => (
+                  <LeaderboardRow
+                    key={lb.liveblog_id}
+                    rank={index + 2}
+                    liveblog={lb}
+                    isExpanded={expandedLiveblogId === lb.liveblog_id}
+                    onToggle={toggleLiveblogDetails}
+                  />
+                ))}
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Publish your first liveblog to see performance breakdowns here.
@@ -703,18 +789,22 @@ export default function AnalyticsDashboardClient() {
                 dashboards.
               </p>
             </div>
-            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-              <p className="text-sm font-medium text-foreground">Scheduled exports</p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Coming soon: automate CSV deliveries to sponsors or internal reporting systems.
-              </p>
-            </div>
-            <Button asChild variant="ghost" size="sm" className="border border-border/50">
-              <Link href="mailto:hello@livequest.studio">
-                Discuss analytics integrations
-                <ArrowUpRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+          <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+            <p className="text-sm font-medium text-foreground">Scheduled exports</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Coming soon: automate CSV deliveries to sponsors or internal reporting systems.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="border border-border/50"
+            onClick={() => window.Intercom?.("show")}
+          >
+            Discuss analytics integrations
+            <ArrowUpRight className="ml-2 h-4 w-4" />
+          </Button>
           </CardContent>
         </Card>
       </div>

@@ -1,33 +1,40 @@
 import { NextResponse } from 'next/server';
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from '@/lib/embed/cors';
 import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
-function cors() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  } as Record<string, string>;
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: cors() });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: embedPreflightCorsHeaders(req, {
+      methods: ['GET', 'OPTIONS'],
+      headers: ['Content-Type'],
+    }),
+  });
 }
 
 type ReactionType = 'smile' | 'heart' | 'thumbs_up';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const baseCors = embedResponseCorsHeaders(req);
+  const responseHeaders = {
+    ...baseCors,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
   try {
     const liveblogId = params.id;
-    if (!liveblogId) return NextResponse.json({ error: 'bad_request' }, { status: 400, headers: cors() });
+    if (!liveblogId) {
+      return NextResponse.json({ error: 'bad_request' }, { status: 400, headers: responseHeaders });
+    }
 
     const url = new URL(req.url);
     const idsParam = url.searchParams.get('updateIds') || '';
     const deviceId = url.searchParams.get('deviceId') || '';
     const updateIds = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
     if (!updateIds.length) {
-      return NextResponse.json({ error: 'missing_updateIds' }, { status: 400, headers: cors() });
+      return NextResponse.json({ error: 'missing_updateIds' }, { status: 400, headers: responseHeaders });
     }
 
     // Validate liveblog visibility
@@ -39,7 +46,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       single: true,
     });
     if (!lb || lb.status !== 'active' || !['public','unlisted'].includes(lb.privacy)) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403, headers: cors() });
+      return NextResponse.json({ error: 'forbidden' }, { status: 403, headers: responseHeaders });
     }
 
     // Ensure all updateIds belong to this liveblog
@@ -55,11 +62,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const validIds = new Set((ups || []).map((u) => u.id));
     const filteredIds = updateIds.filter((id) => validIds.has(id));
     if (!filteredIds.length) {
-      return NextResponse.json({ counts: {}, active: {} }, { status: 200, headers: cors() });
+      return NextResponse.json({ counts: {}, active: {} }, { status: 200, headers: responseHeaders });
     }
 
     // Counts per update and reaction
-    const countsRows = await supabaseEnsure<Array<{ update_id: string; reaction: ReactionType; count: number }>>(req, {
+    const countsRows = await supabaseEnsure<
+      Array<{ update_id: string; reaction: ReactionType; count: number | null }>
+    >(req, {
       action: 'select',
       table: 'update_reactions',
       columns: 'update_id, reaction, count:count(*)',
@@ -72,9 +81,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       counts[id] = { smile: 0, heart: 0, thumbs_up: 0 };
     }
     for (const row of countsRows || []) {
-      const uid = (row as any).update_id as string;
-      const rt = (row as any).reaction as ReactionType;
-      counts[uid][rt] = Number((row as any).count || 0);
+      const { update_id: updateId, reaction, count } = row;
+      counts[updateId][reaction] = Number(count ?? 0);
     }
 
     // Active map per update for this device
@@ -95,13 +103,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         ],
       });
       for (const row of activeRows || []) {
-        active[(row as any).update_id][(row as any).reaction as ReactionType] = true;
+        active[row.update_id][row.reaction] = true;
       }
     }
 
-    return NextResponse.json({ counts, active }, { status: 200, headers: cors() });
+    return NextResponse.json({ counts, active }, { status: 200, headers: responseHeaders });
   } catch {
-    return NextResponse.json({ ok: false }, { status: 200, headers: cors() });
+    return NextResponse.json({ ok: false }, { status: 200, headers: responseHeaders });
   }
 }
 
@@ -110,5 +118,3 @@ async function sha256(input: string) {
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-
-

@@ -12,11 +12,8 @@ import {
   Flag,
   ImagePlus,
   Link2,
-  Loader2,
-  Mic,
   Send,
   Sparkles,
-  Square,
   Type,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/browserClient";
@@ -65,20 +62,12 @@ export default function Composer({
   const [manualIn, setManualIn] = useState<string>("");
   const [manualOut, setManualOut] = useState<string>("");
   const [sending, setSending] = useState(false);
-  const [voiceSupported, setVoiceSupported] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [attachedImage, setAttachedImage] = useState<{ path: string; width?: number; height?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachInputRef = useRef<HTMLInputElement | null>(null);
   const quickPublishInputRef = useRef<HTMLInputElement | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = createClient();
   const isFootball = template === "football";
   const isFullLayout = layout === "full";
@@ -354,128 +343,6 @@ export default function Composer({
     }
   }
 
-  function clearRecordingTimer() {
-    if (recordingTimerRef.current) {
-      clearTimeout(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-  }
-
-  async function transcribeAudio(blob: Blob) {
-    if (!blob || blob.size === 0) return;
-    setIsTranscribing(true);
-    setVoiceError(null);
-    try {
-      const response = await fetch("/api/voice-transcribe", {
-        method: "POST",
-        body: blob,
-        headers: {
-          "Content-Type": blob.type || "audio/webm",
-        },
-      });
-
-      if (!response.ok) {
-        let detail = "";
-        try {
-          const body = await response.json();
-          detail = body?.error || body?.detail || "";
-        } catch {
-          detail = await response.text();
-        }
-        throw new Error(detail || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const transcript = typeof data?.text === "string" ? data.text.trim() : "";
-      if (transcript) {
-        setText((prev) => {
-          if (!prev) return transcript;
-          return `${prev.trimEnd()} ${transcript}`.trim();
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      setVoiceError("We couldn't transcribe that audio. Try again or type it manually.");
-    } finally {
-      setIsTranscribing(false);
-    }
-  }
-
-  async function startVoiceRecording() {
-    if (isRecording || isTranscribing) return;
-    setVoiceError(null);
-    if (typeof window === "undefined") return;
-    if (!voiceSupported) {
-      setVoiceError("Voice capture is not supported in this browser.");
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const options: MediaRecorderOptions = {};
-      if (typeof MediaRecorder !== "undefined") {
-        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-          options.mimeType = "audio/webm;codecs=opus";
-        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-          options.mimeType = "audio/mp4";
-        }
-      }
-
-      const recorder = new MediaRecorder(stream, options);
-      audioChunksRef.current = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      recorder.onstop = () => {
-        clearRecordingTimer();
-        stream.getTracks().forEach((track) => track.stop());
-        mediaRecorderRef.current = null;
-        mediaStreamRef.current = null;
-        setIsRecording(false);
-        const mime = options.mimeType || recorder.mimeType || "audio/webm";
-        const blob = new Blob(audioChunksRef.current, { type: mime });
-        audioChunksRef.current = [];
-        if (blob.size > 0) {
-          void transcribeAudio(blob);
-        }
-      };
-
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      mediaStreamRef.current = stream;
-      setIsRecording(true);
-      recordingTimerRef.current = setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-          mediaRecorderRef.current.stop();
-        }
-      }, 120_000); // 2 minute cap per take
-    } catch (error) {
-      console.error(error);
-      setIsRecording(false);
-      setVoiceError("Microphone access was blocked. Please allow access and try again.");
-      try {
-        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-      } catch {
-        // ignore cleanup errors
-      }
-    }
-  }
-
-  function stopVoiceRecording() {
-    clearRecordingTimer();
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      try {
-        recorder.stop();
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
-      setIsRecording(false);
-    }
-  }
 
   async function loadSquad(input?: string): Promise<Array<{ id: string; name: string }>> {
     const team = input ? matchTeam(input)?.slug || input : undefined;
@@ -523,34 +390,6 @@ export default function Composer({
     }
     prevSponsorCount.current = count;
   }, [sponsorOptions]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const supported =
-        !!navigator.mediaDevices &&
-        typeof navigator.mediaDevices.getUserMedia === "function" &&
-        typeof window.MediaRecorder !== "undefined";
-      setVoiceSupported(supported);
-    } catch {
-      setVoiceSupported(false);
-    }
-
-    return () => {
-      clearRecordingTimer();
-      try {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-          mediaRecorderRef.current.stop();
-        }
-      } catch {
-        // ignore
-      }
-      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-      mediaRecorderRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const introCard = (
     <div className="flex flex-col gap-4 rounded-2xl border border-border/50 bg-background/60 p-5">
@@ -622,46 +461,6 @@ export default function Composer({
           placeholder="Paint the picture…"
           className="min-h-[180px] resize-none bg-background/70"
         />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        {voiceSupported ? (
-          <>
-            <Button
-              type="button"
-              size="sm"
-              variant={isRecording ? "destructive" : "secondary"}
-              disabled={isTranscribing}
-              onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-              className="flex items-center gap-2"
-            >
-              {isRecording ? (
-                <>
-                  <Square className="h-4 w-4" />
-                  Stop voice
-                </>
-              ) : (
-                <>
-                  <Mic className="h-4 w-4" />
-                  Start voice
-                </>
-              )}
-            </Button>
-            {isTranscribing ? (
-              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Transcribing…
-              </span>
-            ) : null}
-            {voiceError ? (
-              <span className="text-xs text-destructive">{voiceError}</span>
-            ) : null}
-          </>
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            Voice capture is not available in this browser.
-          </span>
-        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pt-1">

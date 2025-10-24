@@ -42,6 +42,10 @@ Liveblog Studio helps newsrooms and creators cover live events with a fast edito
 - `supabase/migrations`: Database schema (liveblogs, updates, analytics, matches, cron helpers) applied through Supabase CLI.
 - `public`: Static assets bundled with Next.js build.
 
+
+## Documentation
+- Browse the in-app docs at [`/docs`](http://localhost:3000/docs) for embeds, push setup, and the operations runbook.
+
 ## Getting Started
 
 ### Prerequisites
@@ -62,6 +66,8 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `FOOTBALL_DATA_KEY` | ➖ | Optional Football-Data.org API key for alternative fixture sourcing. |
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
+| `EMBED_ALLOW_ORIGINS` | ➖ | Comma-separated list of allowed embed origins for CORS (e.g. `https://newsroom.com,https://partner.com`). |
+| `NEXT_PUBLIC_INTERCOM_APP_ID` | ➖ | Intercom Messenger app ID (`bbrbwgix` for the shared workspace). |
 
 You may also want to configure Supabase storage bucket `media` (public) for image uploads.
 
@@ -110,13 +116,19 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - The dashboard provides embed snippets via `EmbedButton`. You can choose between iframe and inline script.
 - Inline script usage:
   ```html
-  <div data-liveblog-id="LIVEBLOG_ID" data-mode="native" data-order="newest"></div>
+<div data-liveblog-id="LIVEBLOG_ID" data-mode="native" data-order="newest" data-lazy="true"></div>
   <script src="https://your-domain/embed.js" async></script>
   ```
   - `data-mode` supports `iframe` (default) or `native` rendering.
   - `data-order` can be `newest` or `oldest`.
+- Optional `data-lazy="true"` defers loading until the mount is near viewport.
 - Embeds fetch `/api/embed/:id/feed`, subscribe to `/api/embed/:id/sse`, and fall back to polling with `data-mode="native"` handled by a Shadow DOM renderer.
 - Analytics pings occur automatically via `/api/embed/:id/track` and feed into Supabase tables.
+- The feed endpoint now supports conditional GET via ETag; CDN/proxies can cache with `stale-while-revalidate`.
+- CORS for embed endpoints reflects `Origin` against `EMBED_ALLOW_ORIGINS` and sets `Vary: Origin`.
+
+#### Local demo
+- Visit `/embed-demo.html` to test both iframe and native inline embeds locally. Enter a liveblog id and click Load.
 
 ### Discord Broadcasts
 - Add a Discord webhook URL in the liveblog settings to mirror updates to a channel (`discord_webhook_url` inside `settings`).

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Livequest Embed Demo</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, sans-serif; margin: 0; padding: 24px; background: #0c0d12; color: #e5e7eb; }
+      .wrap { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 1000px; margin: 0 auto; }
+      .card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; background: rgba(255,255,255,0.04); }
+      .mount { border: 1px dashed rgba(255,255,255,0.16); border-radius: 10px; min-height: 200px; padding: 8px; background: rgba(255,255,255,0.02); }
+      label { display:block; font-size:12px; opacity:0.8; margin-bottom:8px; }
+      input { width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.14); background: rgba(0,0,0,0.2); color:#fff; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h2>Inline script (iframe)</h2>
+        <label>Liveblog ID</label>
+        <input id="id1" placeholder="enter liveblog id" />
+        <div style="height:8px"></div>
+        <div id="mount1" class="mount" data-liveblog-id=""></div>
+        <script async src="/embed.js"></script>
+        <div style="height:8px"></div>
+        <button onclick="document.getElementById('mount1').setAttribute('data-liveblog-id', document.getElementById('id1').value);">Load</button>
+      </div>
+
+      <div class="card">
+        <h2>Inline script (native)</h2>
+        <label>Liveblog ID</label>
+        <input id="id2" placeholder="enter liveblog id" />
+        <div style="height:8px"></div>
+        <div id="mount2" class="mount" data-liveblog-id="" data-mode="native" data-order="newest"></div>
+        <script async src="/embed.js"></script>
+        <div style="height:8px"></div>
+        <button onclick="document.getElementById('mount2').setAttribute('data-liveblog-id', document.getElementById('id2').value);">Load</button>
+      </div>
+    </div>
+  </body>
+  </html>
+
+

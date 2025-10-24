@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.1",
+    "@intercom/messenger-js-sdk": "^0.0.18",
     "@radix-ui/react-slot": "^1.1.0",
     "@sentry/nextjs": "^10.20.0",
     "@supabase/ssr": "^0.7.0",
