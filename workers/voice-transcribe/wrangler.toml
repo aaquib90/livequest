@@ -1,3 +1,0 @@
-name = "voice-transcribe"
-main = "src/index.ts"
-compatibility_date = "2024-10-24"

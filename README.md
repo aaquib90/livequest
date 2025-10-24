@@ -46,12 +46,12 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `FOOTBALL_DATA_KEY` | ➖ | Optional Football-Data.org API key for alternative fixture sourcing. |
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
-| `NEXT_PUBLIC_VOICE_TRANSCRIBE_URL` | ➖ | URL of the voice transcription worker that proxies audio to OpenAI. |
+| `OPENAI_API_KEY` | ➖ | Enables the voice composer by proxying audio to OpenAI `gpt-4o-mini-transcribe`. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
 | `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
 | `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |
 
-Voice capture in the live composer is optional and only appears when `NEXT_PUBLIC_VOICE_TRANSCRIBE_URL` is configured.
+Voice capture in the live composer is optional but requires `OPENAI_API_KEY`; without it, the microphone controls stay hidden and reporters can continue typing updates normally.
 
 You may also want to configure Supabase storage bucket `media` (public) for image uploads.
 
@@ -124,16 +124,6 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - Embed readers can opt into browser push notifications (service worker served from `/push-sw.js`).
 - Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` for web-push support.
 - Publishing an update triggers push payloads automatically; manual broadcasts are available via `POST /api/liveblogs/{id}/broadcast/notify`.
-
-### Voice Dictation Worker
-- Deploy `workers/voice-transcribe` to Cloudflare Workers (or another trusted edge runtime). The worker keeps the OpenAI key off the client and verifies Supabase access tokens before proxying audio to `gpt-4o-mini-transcribe`.
-- Required worker environment variables:
-  - `OPENAI_API_KEY`
-  - `SUPABASE_URL` (same project as the web app)
-  - `SUPABASE_ANON_KEY`
-  - Optional: `ALLOWED_ORIGINS` (comma-separated allowlist of dashboard origins) and `MAX_AUDIO_BYTES` (defaults to 25 MB).
-- After deploying, set `NEXT_PUBLIC_VOICE_TRANSCRIBE_URL` in `web/.env.local` to the worker URL (`https://voice.example.workers.dev/transcribe`).
-- For local development, run `wrangler dev` inside `workers/voice-transcribe` and point `NEXT_PUBLIC_VOICE_TRANSCRIBE_URL` at `http://127.0.0.1:8787`.
 
 ### Discord Broadcasts
 - Add a Discord webhook URL in the Livequest settings to mirror updates to a channel (`discord_webhook_url` inside `settings`).
