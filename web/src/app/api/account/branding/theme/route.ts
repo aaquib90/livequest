@@ -4,7 +4,7 @@ import { DEFAULT_BRANDING } from "@/lib/branding/constants";
 import { normaliseBranding } from "@/lib/branding/utils";
 import { createClient } from "@/lib/supabase/serverClient";
 
-import { sanitiseThemePayload, THEME_DEFAULTS } from "../../../account/customization/server-utils";
+import { sanitiseThemePayload, THEME_DEFAULTS } from "@/lib/account-branding/server-utils";
 
 export const runtime = "edge";
 

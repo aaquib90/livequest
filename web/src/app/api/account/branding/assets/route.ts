@@ -5,7 +5,7 @@ import { DEFAULT_BRANDING } from "@/lib/branding/constants";
 import { normaliseBranding } from "@/lib/branding/utils";
 import { createClient } from "@/lib/supabase/serverClient";
 
-import { sanitiseBoundedText } from "../../../account/customization/server-utils";
+import { sanitiseBoundedText } from "@/lib/account-branding/server-utils";
 
 export const runtime = "edge";
 
