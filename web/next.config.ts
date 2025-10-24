@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
       "lucide-react",
     ],
   },
+  modularizeImports: {
+    "lucide-react": {
+      transform: "lucide-react/icons/{{kebabCase member}}",
+      preventFullImport: true,
+    },
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

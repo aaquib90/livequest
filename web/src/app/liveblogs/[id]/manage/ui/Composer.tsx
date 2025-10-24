@@ -1,6 +1,5 @@
 "use client";
 import { useRef, useState, type DragEvent, useEffect } from "react";
-import * as Sentry from "@sentry/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,20 +178,15 @@ export default function Composer({
         if (!isNaN(dt.getTime())) scheduled_at = dt.toISOString();
       } catch {}
     }
-    const { error } = await Sentry.startSpan(
-      { op: "ui.submit", name: "Composer publish" },
-      async () => {
-        return await supabase
-          .from("updates")
-          .insert({
-            liveblog_id: liveblogId,
-            content: contentPayload,
-            status,
-            scheduled_at,
-            author_id,
-          });
-      }
-    );
+    const { error } = await supabase
+      .from("updates")
+      .insert({
+        liveblog_id: liveblogId,
+        content: contentPayload,
+        status,
+        scheduled_at,
+        author_id,
+      });
     if (!error) {
       setTitle("");
       setText("");
@@ -272,14 +266,9 @@ export default function Composer({
       .toString(36)
       .slice(2)}.${ext}`;
     const { width, height } = await readImageSize(normalized.file);
-    const { error: upErr } = await Sentry.startSpan(
-      { op: "storage.upload", name: "Upload image" },
-      async () => {
-        return await supabase.storage
-          .from("media")
-          .upload(key, normalized.file, { upsert: false, contentType: normalized.contentType || normalized.file.type });
-      }
-    );
+    const { error: upErr } = await supabase.storage
+      .from("media")
+      .upload(key, normalized.file, { upsert: false, contentType: normalized.contentType || normalized.file.type });
     if (upErr) {
       setUploading(false);
       return null;
@@ -299,7 +288,7 @@ export default function Composer({
           height,
         });
     } catch (err) {
-      Sentry.captureException(err);
+      console.error(err);
     }
     setUploading(false);
     return { key, width, height };
@@ -349,7 +338,7 @@ export default function Composer({
           }).catch(() => {});
         } catch {}
       } catch (err) {
-        Sentry.captureException(err);
+        console.error(err);
       }
     }
   }

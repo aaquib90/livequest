@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,10 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { FormSubmitButton } from "@/components/auth/form-submit-button";
-import { createClient } from "@/lib/supabase/serverClient";
+
+import SignUpForm from "./SignUpForm";
 
 export const runtime = "edge";
 
@@ -23,30 +21,32 @@ export const metadata: Metadata = {
   description: "Sign up for Livequest Studio to publish live coverage, track analytics, and activate sponsors in minutes.",
 };
 
-async function signUpAction(formData: FormData) {
-  "use server";
-  const email = String(formData.get("email") || "");
-  const password = String(formData.get("password") || "");
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email, password });
-  if (error) {
-    return redirect(`/signup?error=${encodeURIComponent(error.message)}`);
-  }
-  return redirect(`/signup/verify?email=${encodeURIComponent(email)}`);
-}
-
 export default async function SignUpPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    return redirect("/dashboard");
+  const headerList = headers();
+  const host = headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
+  const cookieHeader = cookies().toString();
+
+  if (host) {
+    try {
+      const accountRes = await fetch(`${protocol}://${host}/api/internal/overview?target=account`, {
+        headers: {
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        },
+        cache: "no-store",
+      });
+      if (accountRes.ok) {
+        return redirect("/dashboard");
+      }
+    } catch {
+      // continue rendering sign-up form
+    }
   }
+
   const sp = await searchParams;
   const error = sp?.error;
   return (
@@ -66,56 +66,9 @@ export default async function SignUpPage({
                 analytics. Let&apos;s get you set up.
               </CardDescription>
             </div>
-            {error ? (
-              <div
-                className="flex items-center justify-center rounded-2xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground/90"
-                role="alert"
-              >
-                {error}
-              </div>
-            ) : null}
           </CardHeader>
           <CardContent className="space-y-5">
-            <form action={signUpAction} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="team@yournewsroom.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  placeholder="Create a strong password"
-                />
-              </div>
-              <FormSubmitButton
-                type="submit"
-                className="w-full"
-                size="lg"
-                pendingLabel="Creating your studio..."
-              >
-                Sign up
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </FormSubmitButton>
-            </form>
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link className="text-foreground underline decoration-dotted" href="/signin">
-                Sign in
-              </Link>
-              .
-            </p>
+            <SignUpForm defaultError={error} />
           </CardContent>
         </Card>
       </div>

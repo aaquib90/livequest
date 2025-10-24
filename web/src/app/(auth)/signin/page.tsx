@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowRight, LockKeyhole, MailOpen } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,10 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { FormSubmitButton } from "@/components/auth/form-submit-button";
-import { createClient } from "@/lib/supabase/serverClient";
+
+import SignInForm from "./SignInForm";
 
 export const runtime = "edge";
 
@@ -27,46 +25,43 @@ export const metadata: Metadata = {
   },
 };
 
-async function signInAction(formData: FormData) {
-  "use server";
-  const email = String(formData.get("email") || "");
-  const password = String(formData.get("password") || "");
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    const message = error.message?.toLowerCase() ?? "";
-    if (message.includes("confirm")) {
-      return redirect(
-        `/signin?status=pending-verification&email=${encodeURIComponent(email)}`
-      );
-    }
-    return redirect(`/signin?error=${encodeURIComponent(error.message)}`);
-  }
-  return redirect("/dashboard");
-}
-
 export default async function SignInPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; status?: string; email?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
+  const headerList = headers();
+  const host = headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
+  const cookieHeader = cookies().toString();
+
+  if (host) {
+    try {
+      const accountRes = await fetch(`${protocol}://${host}/api/internal/overview?target=account`, {
+        headers: {
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        },
+        cache: "no-store",
+      });
+      if (accountRes.ok) {
+        return redirect("/dashboard");
+      }
+    } catch {
+      // fall back to rendering sign-in form
+    }
+  }
+
+  const sp = await searchParams;
+  const error = sp?.error ?? null;
+  const status = sp?.status;
+  const email = sp?.email ?? "";
+
+  if (status === "signed-in") {
     return redirect("/dashboard");
   }
-  const sp = await searchParams;
-  const error = sp?.error;
-  const status = sp?.status;
-  const email = sp?.email;
+
   const pendingVerification = status === "pending-verification";
-  const inbox = email ? (
-    <span className="font-medium text-foreground">{email}</span>
-  ) : (
-    "the inbox you used to sign up"
-  );
+
   return (
     <div className="relative flex min-h-[80vh] items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(250,250,250,0.04),_transparent_55%)]" />
@@ -83,65 +78,9 @@ export default async function SignInPage({
                 Welcome back. Enter your credentials to continue crafting live coverage.
               </CardDescription>
             </div>
-            {pendingVerification ? (
-              <div
-                className="flex items-start gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-left text-sm text-foreground"
-                role="status"
-              >
-                <MailOpen className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">Confirm your email to continue</p>
-                  <p className="text-muted-foreground">
-                    We emailed a welcome link to {inbox}. Open it to activate your account and
-                    then return to sign in.
-                  </p>
-                </div>
-              </div>
-            ) : error ? (
-              <div
-                className="flex items-center gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground/90"
-                role="alert"
-              >
-                {error}
-              </div>
-            ) : null}
           </CardHeader>
           <CardContent className="space-y-5">
-            <form action={signInAction} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-              <FormSubmitButton type="submit" className="w-full" size="lg" pendingLabel="Signing in...">
-                Sign in
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </FormSubmitButton>
-            </form>
-            <p className="text-sm text-muted-foreground">
-              No account yet?{" "}
-              <Link className="text-foreground underline decoration-dotted" href="/signup">
-                Create one in seconds
-              </Link>
-              .
-            </p>
+            <SignInForm defaultEmail={email} defaultError={error} pendingVerification={pendingVerification} />
           </CardContent>
         </Card>
       </div>
