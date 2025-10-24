@@ -58,7 +58,7 @@ export default async function AccountPage({
   const host = headerList.get("host");
   const protocol = headerList.get("x-forwarded-proto") ?? "https";
 
-  const overviewRes = await fetch(`${protocol}://${host}/api/internal/account/overview`, {
+  const overviewRes = await fetch(`${protocol}://${host}/api/internal/overview?target=account`, {
     headers: {
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     },

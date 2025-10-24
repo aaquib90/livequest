@@ -72,7 +72,7 @@ export default async function AccountCustomizationPage({
   const host = headerList.get("host");
   const protocol = headerList.get("x-forwarded-proto") ?? "https";
 
-  const dataRes = await fetch(`${protocol}://${host}/api/internal/account/customization`, {
+  const dataRes = await fetch(`${protocol}://${host}/api/internal/overview?target=account-customization`, {
     headers: {
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     },

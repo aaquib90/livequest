@@ -96,7 +96,7 @@ export default async function DashboardPage({
   const host = headerList.get("host");
   const protocol = headerList.get("x-forwarded-proto") ?? "https";
 
-  const overviewRes = await fetch(`${protocol}://${host}/api/internal/dashboard/overview`, {
+  const overviewRes = await fetch(`${protocol}://${host}/api/internal/overview?target=dashboard`, {
     headers: {
       ...(cookieHeader ? { Cookie: cookieHeader } : {}),
     },

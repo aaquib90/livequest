@@ -46,7 +46,7 @@ export default async function EmbedPage({
   const host = headerList.get("host");
   const protocol = headerList.get("x-forwarded-proto") ?? "https";
 
-  const overviewRes = await fetch(`${protocol}://${host}/api/internal/embed/${id}/overview`, {
+  const overviewRes = await fetch(`${protocol}://${host}/api/internal/overview?target=embed&id=${encodeURIComponent(id)}`, {
     cache: "no-store",
   });
 
