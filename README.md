@@ -47,7 +47,7 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
 | `OPENAI_API_KEY` | ➖ | Enables the voice composer by proxying audio to OpenAI `gpt-4o-mini-transcribe`. |
-| `SUPABASE_SSR_MODULE_URL` | ➖ | Optional URL (e.g. R2/Workers) serving a bundled copy of `@supabase/ssr` for server-side usage to keep Edge bundles small. |
+| `SUPABASE_SSR_MODULE_URL` | ➖ | Optional URL (e.g. R2/Workers) serving a bundled copy of `@supabase/ssr` for server-side usage to keep Edge bundles small. Leave unset to use the default CDN. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
 | `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
 | `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |

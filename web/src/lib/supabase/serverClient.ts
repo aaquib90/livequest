@@ -1,9 +1,12 @@
 import type { CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-const SUPABASE_SSR_MODULE =
-  process.env.SUPABASE_SSR_MODULE_URL ??
+const DEFAULT_SUPABASE_SSR_MODULE =
   "https://esm.sh/@supabase/ssr@0.5.1?bundle&target=es2022";
+
+const SUPABASE_SSR_MODULE =
+  process.env.SUPABASE_SSR_MODULE_URL?.trim() ||
+  DEFAULT_SUPABASE_SSR_MODULE;
 
 type SupabaseSSRModule = typeof import("@supabase/ssr");
 
