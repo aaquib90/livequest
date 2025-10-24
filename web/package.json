@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "pages:build": "npx @cloudflare/next-on-pages@latest",
+    "pages:build": "npx opennext@latest build --platform cloudflare-pages",
     "start": "next start",
     "lint": "eslint",
     "gen:epl:players": "node ./src/scripts/generate-epl-players.cjs"
@@ -28,7 +28,6 @@
     "web-push": "^3.6.3"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.6",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
