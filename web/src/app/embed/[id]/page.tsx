@@ -80,14 +80,19 @@ export default async function EmbedPage({
   const surfaceClass = branding?.surface_style
     ? SURFACE_CLASS_MAP[branding.surface_style] ?? SURFACE_CLASS_MAP.glass
     : "border border-border/70 bg-background/60 backdrop-blur";
-  const logoUrl =
-    branding?.logo_path && branding.logo_path.length
-      ? supabase.storage.from("brand-assets").getPublicUrl(branding.logo_path).data.publicUrl
-      : null;
-  const backgroundUrl =
-    branding?.background_path && branding.background_path.length
-      ? supabase.storage.from("brand-assets").getPublicUrl(branding.background_path).data.publicUrl
-      : null;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  const buildPublicUrl = (path: string | null | undefined) => {
+    if (!supabaseUrl || !path) return null;
+    const safePath = path
+      .split("/")
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join("/");
+    return `${supabaseUrl}/storage/v1/object/public/brand-assets/${safePath}`;
+  };
+
+  const logoUrl = buildPublicUrl(branding?.logo_path ?? null);
+  const backgroundUrl = buildPublicUrl(branding?.background_path ?? null);
 
   const cardStyle = {
     ...(accentSoft ? { borderColor: accentSoft } : {}),

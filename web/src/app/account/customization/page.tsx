@@ -75,14 +75,18 @@ export default async function AccountCustomizationPage({
 
   const accentColor = resolveAccentColor(branding);
   const accentSoft = accentOverlay(accentColor, 0.15);
-  const logoUrl =
-    branding.logo_path && branding.logo_path.length
-      ? supabase.storage.from("brand-assets").getPublicUrl(branding.logo_path).data.publicUrl
-      : null;
-  const backgroundUrl =
-    branding.background_path && branding.background_path.length
-      ? supabase.storage.from("brand-assets").getPublicUrl(branding.background_path).data.publicUrl
-      : null;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  const buildPublicUrl = (path: string | null | undefined) => {
+    if (!supabaseUrl || !path) return null;
+    const safePath = path
+      .split("/")
+      .filter(Boolean)
+      .map(encodeURIComponent)
+      .join("/");
+    return `${supabaseUrl}/storage/v1/object/public/brand-assets/${safePath}`;
+  };
+  const logoUrl = buildPublicUrl(branding.logo_path);
+  const backgroundUrl = buildPublicUrl(branding.background_path);
   const selectedPreset = (branding.palette_preset in PALETTE_PRESETS
     ? branding.palette_preset
     : "violet") as PalettePresetKey;
