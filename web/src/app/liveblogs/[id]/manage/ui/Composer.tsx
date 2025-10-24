@@ -366,12 +366,12 @@ export default function Composer({
     setIsTranscribing(true);
     setVoiceError(null);
     try {
-      const formData = new FormData();
-      formData.append("audio", blob, "voice.webm");
-
       const response = await fetch("/api/voice-transcribe", {
         method: "POST",
-        body: formData,
+        body: blob,
+        headers: {
+          "Content-Type": blob.type || "audio/webm",
+        },
       });
 
       if (!response.ok) {

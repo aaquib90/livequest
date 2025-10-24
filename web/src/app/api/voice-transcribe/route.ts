@@ -32,20 +32,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const form = await req.formData();
-    const audio = form.get("audio");
-    if (!audio || !(audio instanceof File)) {
-      return NextResponse.json({ error: "bad_request" }, { status: 400 });
-    }
-    if (audio.size === 0) {
+    const contentType =
+      req.headers.get("content-type")?.split(";")[0]?.trim() || "audio/webm";
+    const audioBuffer = await req.arrayBuffer();
+    const size = audioBuffer.byteLength;
+    if (!audioBuffer || size === 0) {
       return NextResponse.json({ error: "empty_audio" }, { status: 400 });
     }
-    if (audio.size > MAX_AUDIO_BYTES) {
+    if (size > MAX_AUDIO_BYTES) {
       return NextResponse.json({ error: "audio_too_large" }, { status: 413 });
     }
 
+    const audioBlob = new Blob([audioBuffer], { type: contentType });
+
     const openAiForm = new FormData();
-    openAiForm.append("file", audio, audio.name || "voice.webm");
+    openAiForm.append("file", audioBlob, "voice.webm");
     openAiForm.append("model", MODEL_ID);
     openAiForm.append("response_format", "verbose_json");
     openAiForm.append("temperature", "0");
