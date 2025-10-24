@@ -98,6 +98,8 @@ export default async function AccountPage({
 
   return (
     <div className="space-y-8">
+      <AccountSectionTabs />
+
       <AccountHeaderCard
         badgeIcon={<CircleUserRound className="mr-1.5 h-3.5 w-3.5" />}
         heading={displayName}
@@ -132,9 +134,6 @@ export default async function AccountPage({
         successMessage={successMessage}
         errorMessage={errorMessage}
       />
-
-      <AccountSectionTabs />
-
       <SubscriptionPlanShell features={features} monthlyUsage={liveblogsThisMonth || 0} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">

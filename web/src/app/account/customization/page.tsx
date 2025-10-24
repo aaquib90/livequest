@@ -138,6 +138,8 @@ export default async function AccountCustomizationPage({
 
   return (
     <div className="space-y-8">
+      <AccountSectionTabs />
+
       <AccountHeaderCard
         badgeIcon={<Sparkles className="mr-1.5 h-3.5 w-3.5" />}
         badgeLabel="Customization"
@@ -154,8 +156,6 @@ export default async function AccountCustomizationPage({
         successMessage={successMessage}
         errorMessage={errorMessage}
       />
-
-      <AccountSectionTabs />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Card className="border-border/70 bg-background/50">
