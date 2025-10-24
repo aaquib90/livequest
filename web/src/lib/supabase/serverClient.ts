@@ -1,7 +1,26 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+type SupabaseSSRModule = typeof import("@supabase/ssr");
+
+let supabaseModulePromise: Promise<SupabaseSSRModule> | null = null;
+let cachedCreateServerClient:
+  | SupabaseSSRModule["createServerClient"]
+  | null = null;
+
+async function resolveCreateServerClient() {
+  if (!cachedCreateServerClient) {
+    if (!supabaseModulePromise) {
+      supabaseModulePromise = import("@supabase/ssr");
+    }
+    const mod = await supabaseModulePromise;
+    cachedCreateServerClient = mod.createServerClient;
+  }
+  return cachedCreateServerClient;
+}
+
 export async function createClient() {
+  const createServerClient = await resolveCreateServerClient();
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
