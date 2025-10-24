@@ -17,7 +17,7 @@ export default function AccountSectionTabs() {
   return (
     <nav
       aria-label="Account sections"
-      className="flex flex-wrap gap-2 rounded-full border border-border/60 bg-background/60 p-1 text-sm shadow-sm backdrop-blur"
+      className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 p-1 text-sm shadow-sm backdrop-blur"
     >
       {tabs.map((tab) => {
         const isActive =
