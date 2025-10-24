@@ -366,12 +366,28 @@ export default function Composer({
     setIsTranscribing(true);
     setVoiceError(null);
     try {
-      const response = await fetch("/api/voice-transcribe", {
+      const endpoint = process.env.NEXT_PUBLIC_VOICE_TRANSCRIBE_URL;
+      if (!endpoint) {
+        setVoiceError("Voice transcription endpoint is not configured.");
+        return;
+      }
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        setVoiceError("We couldn't validate your session for voice capture.");
+        return;
+      }
+      const token = sessionData?.session?.access_token ?? null;
+      const headers: Record<string, string> = {
+        "Content-Type": blob.type || "audio/webm",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(endpoint, {
         method: "POST",
         body: blob,
-        headers: {
-          "Content-Type": blob.type || "audio/webm",
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -527,10 +543,12 @@ export default function Composer({
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
+      const endpointConfigured = Boolean(process.env.NEXT_PUBLIC_VOICE_TRANSCRIBE_URL);
       const supported =
         !!navigator.mediaDevices &&
         typeof navigator.mediaDevices.getUserMedia === "function" &&
-        typeof window.MediaRecorder !== "undefined";
+        typeof window.MediaRecorder !== "undefined" &&
+        endpointConfigured;
       setVoiceSupported(supported);
     } catch {
       setVoiceSupported(false);
