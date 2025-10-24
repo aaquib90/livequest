@@ -6,7 +6,7 @@ Livequest Studio helps newsrooms and creators cover live events with a fast edit
 - **Studio workspace**: Coverage, Planner, Analytics, and Sponsors tabs keep every liveblog in one place with autosave, scheduling, templating, and row-level security.
 - **Account intelligence**: `/account` surfaces active liveblogs, audience reach, sponsor performance, and referrers so you can spot trends without exporting data.
 - **Sponsorships & monetisation**: Manage reusable sponsor slots, flight windows, and real-time CTR tracking for every placement across embeds.
-- **Realtime storytelling**: Keyboard-first composer, pinning, instant media uploads, Server Actions, SSE embed feeds, and optional push notifications for subscribers.
+- **Realtime storytelling**: Keyboard-first composer, pinning, instant media uploads, Server Actions, SSE embed feeds, voice dictation via OpenAI Whisper mini, and optional push notifications for subscribers.
 - **Team-ready controls**: Supabase auth, privacy modes, folder organisation, concurrency helpers, Discord broadcast webhooks, and scheduled publishing.
 - **Sports integrations**: API-Football sync jobs, match centre templates, and fixtures API endpoints to power scoreboards and pre-built match commentary.
 - **Operational tooling**: Supabase migrations, cron utilities, Sentry instrumentation, and TypeScript components for confident iteration.
@@ -46,9 +46,12 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `FOOTBALL_DATA_KEY` | ➖ | Optional Football-Data.org API key for alternative fixture sourcing. |
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
+| `OPENAI_API_KEY` | ➖ | Enables the voice composer by proxying audio to OpenAI `gpt-4o-mini-transcribe`. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
 | `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
 | `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |
+
+Voice capture in the live composer is optional but requires `OPENAI_API_KEY`; without it, the microphone controls stay hidden and reporters can continue typing updates normally.
 
 You may also want to configure Supabase storage bucket `media` (public) for image uploads.
 
@@ -87,7 +90,7 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - `/dashboard` lists every liveblog with folder filters, privacy states, and status chips so you can archive, complete, or delete coverage quickly.
 - Create new liveblogs with templates, default sponsors, and folder assignment directly from the `CreateLiveblogDialog`.
 - Each Livequest ships with four workspaces (`ManageTabs`):
-  - **Coverage**: Keyboard-first composer with autosave, pinning, sponsor assignment, and media uploads backed by Supabase storage.
+  - **Coverage**: Keyboard-first composer with autosave, pinning, sponsor assignment, media uploads, and voice dictation backed by OpenAI transcription.
   - **Planner**: Draft, schedule, or queue updates. Publishing fires Discord broadcasts and optional push notifications.
   - **Analytics**: Real-time uniques, starts, session concurrency, and 24h trends from `viewer_pings` and `analytics_events`.
   - **Sponsors**: Manage reusable sponsor slots, flight windows, creative assets, and live CTR metrics.
