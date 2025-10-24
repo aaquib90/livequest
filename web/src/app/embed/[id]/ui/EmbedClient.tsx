@@ -1,6 +1,6 @@
 "use client";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Bell, BellOff } from "lucide-react";
 
 import {
@@ -8,6 +8,9 @@ import {
   FootballEventBanner,
 } from "@/components/football/FootballEventBadge";
 import { FootballEventDetails } from "@/components/football/FootballEventDetails";
+import { CORNER_CLASS_MAP, accentOverlay } from "@/lib/branding/presentation";
+import type { AccountBranding } from "@/lib/branding/types";
+import { normaliseBranding, resolveAccentColor } from "@/lib/branding/utils";
 import type { FootballEventKey } from "@/lib/football/events";
 import { createClient } from "@/lib/supabase/browserClient";
 import { cn } from "@/lib/utils";
@@ -76,6 +79,8 @@ export default function EmbedClient({
   homeTeamSlug,
   awayTeamName,
   awayTeamSlug,
+  branding,
+  brandingAssets,
 }: {
   initialUpdates: Update[];
   liveblogId: string;
@@ -85,6 +90,8 @@ export default function EmbedClient({
   homeTeamSlug?: string;
   awayTeamName?: string;
   awayTeamSlug?: string;
+  branding?: AccountBranding | null;
+  brandingAssets?: { logoUrl?: string | null; backgroundUrl?: string | null };
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [updates, setUpdates] = useState<Update[]>(initialUpdates);
@@ -100,6 +107,42 @@ export default function EmbedClient({
   const [reactionActive, setReactionActive] = useState<Record<string, { smile: boolean; heart: boolean; thumbs_up: boolean }>>({});
   const [sponsors, setSponsors] = useState<SponsorSlot[]>([]);
   const sponsorImpressionsRef = useRef<Set<string>>(new Set());
+
+  const brandingConfig = useMemo(() => normaliseBranding(branding ?? undefined), [branding]);
+  const accentColor = useMemo(() => resolveAccentColor(brandingConfig), [brandingConfig]);
+  const accentSoft = useMemo(() => accentOverlay(accentColor, 0.18), [accentColor]);
+  const accentButtonBg = useMemo(() => accentOverlay(accentColor, 0.12), [accentColor]);
+  const accentGlow = useMemo(
+    () => `radial-gradient(120% 120% at 100% 0%, ${accentOverlay(accentColor, 0.2)}, transparent)`,
+    [accentColor]
+  );
+  const updateCornerClass = useMemo(
+    () => CORNER_CLASS_MAP[brandingConfig.corner_style] ?? CORNER_CLASS_MAP.rounded,
+    [brandingConfig.corner_style]
+  );
+  const updateSurfaceClass = useMemo(() => {
+    switch (brandingConfig.surface_style) {
+      case "solid":
+        return "border border-border/60 bg-background/90";
+      case "contrast":
+        return "border border-border/40 bg-background/95";
+      default:
+        return "border border-border/60 bg-background/80";
+    }
+  }, [brandingConfig.surface_style]);
+  const rootStyle = useMemo<CSSProperties>(() => {
+    const style: CSSProperties = {
+      "--lb-accent": accentColor,
+      "--lb-accent-soft": accentSoft,
+    } as CSSProperties;
+    if (brandingAssets?.backgroundUrl) {
+      style.backgroundImage = `linear-gradient(180deg, rgba(12,13,17,0.78), rgba(12,13,18,0.92)), url(${brandingAssets.backgroundUrl})`;
+      style.backgroundSize = "cover";
+      style.backgroundPosition = "center";
+      style.backgroundRepeat = "no-repeat";
+    }
+    return style;
+  }, [accentColor, accentSoft, brandingAssets?.backgroundUrl]);
 
   useEffect(() => {
     // Ensure a stable per-device id (scoped to origin)
@@ -441,7 +484,7 @@ export default function EmbedClient({
   }, [sorted, sessionId, analyticsMode, sponsorMap, sponsors]);
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="relative space-y-4 pb-10" style={rootStyle}>
       <div className="flex items-center justify-end">
         {pushSupported ? (
           <button
@@ -449,7 +492,16 @@ export default function EmbedClient({
             onClick={() => (pushEnabled ? unsubscribePush() : subscribePush())}
             disabled={pushBusy}
             aria-label={pushEnabled ? "Disable notifications" : "Enable notifications"}
-            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs text-muted-foreground hover:border-border/50"
+            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs text-muted-foreground transition-colors"
+            style={
+              accentColor
+                ? {
+                    borderColor: accentSoft,
+                    color: accentColor,
+                    backgroundColor: accentButtonBg,
+                  }
+                : undefined
+            }
           >
             {pushEnabled ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
             {pushEnabled ? "Notifications on" : "Notify me"}
@@ -468,90 +520,103 @@ export default function EmbedClient({
         const isSponsored = isSponsoredContent(u.content);
         const sponsorSlot = isSponsored ? resolveContentSponsor(u.content, sponsorMap, sponsors) : null;
         return (
-        <article
-          key={u.id}
-          className={cn(
-            "group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-5 shadow-[0_24px_60px_-42px_rgba(7,8,14,0.92)] transition-all duration-500 hover:border-border/40",
-            u.pinned &&
-              "border-amber-400/60 bg-gradient-to-br from-amber-500/12 via-background/75 to-background/90",
-            isNew &&
-              "will-change-transform animate-[lb-slide-fade-in_460ms_cubic-bezier(0.22,1,0.36,1)_both]"
-          )}
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_100%_0%,rgba(129,140,248,0.15),transparent)] opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
-          {u.pinned ? (
-            <span className="pointer-events-none absolute -top-10 right-6 h-20 w-20 rounded-full bg-amber-400/15 blur-3xl" />
-          ) : null}
-          <div className="relative z-[1] space-y-4">
-            {u.pinned || eventKey || isSponsored ? (
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                {u.pinned ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/10 px-3 py-1 text-amber-200">
-                    Pinned
-                  </span>
-                ) : null}
-                {eventKey ? (
-                  <FootballEventBadge event={eventKey} size="sm" />
-                ) : null}
-                {isSponsored ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-emerald-200">
-                    Sponsored
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {isSponsored && sponsorSlot ? (
-              <SponsorInline
-                slot={sponsorSlot}
-                onClick={(slot, url) => {
-                  if (url) recordSponsorClick(slot, url);
-                }}
-              />
-            ) : null}
-            {eventKey ? (
-              <FootballEventBanner
-                event={eventKey}
-                subtle
-                isNew={isNew}
-                className="border border-white/10"
-              />
-            ) : null}
-            {eventKey && textContent?.event_meta ? (
-              <FootballEventDetails
-                event={eventKey}
-                meta={textContent.event_meta}
-                isNew={isNew}
-                context={{
-                  homeTeamName,
-                  homeTeamSlug,
-                  awayTeamName,
-                  awayTeamSlug,
-                }}
-              />
-            ) : null}
-            <RenderContent content={u.content} isNew={isNew} />
-            <ReactionBar
-              liveblogId={liveblogId}
-              updateId={u.id}
-              deviceId={deviceId}
-              counts={reactionCounts[u.id] || { smile: 0, heart: 0, thumbs_up: 0 }}
-              active={reactionActive[u.id] || { smile: false, heart: false, thumbs_up: false }}
-              onChange={(nextCounts, nextActive) => {
-                setReactionCounts((prev) => ({ ...prev, [u.id]: nextCounts }));
-                setReactionActive((prev) => ({ ...prev, [u.id]: nextActive }));
-              }}
-              onTrack={trackEvent}
+          <article
+            key={u.id}
+            className={cn(
+              "group relative overflow-hidden p-5 shadow-[0_24px_60px_-42px_rgba(7,8,14,0.92)] transition-all duration-500 hover:border-border/40",
+              updateCornerClass,
+              updateSurfaceClass,
+              u.pinned &&
+                "border-amber-400/60 bg-gradient-to-br from-amber-500/12 via-background/75 to-background/90",
+              isNew &&
+                "will-change-transform animate-[lb-slide-fade-in_460ms_cubic-bezier(0.22,1,0.36,1)_both]"
+            )}
+            style={!u.pinned ? { borderColor: accentSoft } : undefined}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-80 transition-opacity duration-500 group-hover:opacity-100"
+              style={{ background: accentGlow }}
             />
-            <p className="pt-1 text-xs text-muted-foreground">
-              {u.published_at ? formatDate(u.published_at) : ""}
-            </p>
-          </div>
-        </article>
-      );
+            {u.pinned ? (
+              <span className="pointer-events-none absolute -top-10 right-6 h-20 w-20 rounded-full bg-amber-400/15 blur-3xl" />
+            ) : null}
+            <div className="relative z-[1] space-y-4">
+              {u.pinned || eventKey || isSponsored ? (
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                  {u.pinned ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/10 px-3 py-1 text-amber-200">
+                      Pinned
+                    </span>
+                  ) : null}
+                  {eventKey ? (
+                    <FootballEventBadge event={eventKey} size="sm" />
+                  ) : null}
+                  {isSponsored ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-emerald-200">
+                      Sponsored
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              {isSponsored && sponsorSlot ? (
+                <SponsorInline
+                  slot={sponsorSlot}
+                  onClick={(slot, url) => {
+                    if (url) recordSponsorClick(slot, url);
+                  }}
+                />
+              ) : null}
+              {eventKey ? (
+                <FootballEventBanner
+                  event={eventKey}
+                  subtle
+                  isNew={isNew}
+                  className="border border-white/10"
+                />
+              ) : null}
+              {eventKey && textContent?.event_meta ? (
+                <FootballEventDetails
+                  event={eventKey}
+                  meta={textContent.event_meta}
+                  isNew={isNew}
+                  context={{
+                    homeTeamName,
+                    homeTeamSlug,
+                    awayTeamName,
+                    awayTeamSlug,
+                  }}
+                />
+              ) : null}
+              <RenderContent content={u.content} isNew={isNew} />
+              <ReactionBar
+                liveblogId={liveblogId}
+                updateId={u.id}
+                deviceId={deviceId}
+                counts={reactionCounts[u.id] || { smile: 0, heart: 0, thumbs_up: 0 }}
+                active={reactionActive[u.id] || { smile: false, heart: false, thumbs_up: false }}
+                onChange={(nextCounts, nextActive) => {
+                  setReactionCounts((prev) => ({ ...prev, [u.id]: nextCounts }));
+                  setReactionActive((prev) => ({ ...prev, [u.id]: nextActive }));
+                }}
+                onTrack={trackEvent}
+              />
+              <p className="pt-1 text-xs text-muted-foreground">
+                {u.published_at ? formatDate(u.published_at) : ""}
+              </p>
+            </div>
+          </article>
+        );
       })}
       {!sorted.length ? (
         <div className="rounded-2xl border border-dashed border-border/60 bg-background/60 p-10 text-center text-sm text-muted-foreground">
           Updates will appear here the moment they are published.
+        </div>
+      ) : null}
+      {brandingConfig.watermark ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-end px-4">
+          <div className="rounded-full bg-black/40 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.38em] text-white/70 backdrop-blur">
+            {brandingConfig.watermark}
+          </div>
         </div>
       ) : null}
     </div>

@@ -1,14 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  AlertCircle,
-  ArrowUpRight,
-  BadgeCheck,
-  BarChart3,
-  CircleUserRound,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
+import { ArrowUpRight, BarChart3, CircleUserRound, LogOut, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/serverClient";
 import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
 import AccountInsightsShell from "./components/AccountInsightsShell";
+import AccountSectionTabs from "./components/AccountSectionTabs";
+import { AccountHeaderCard } from "./components/AccountHeaderCard";
 import SubscriptionPlanShell from "./components/SubscriptionPlanShell";
 
 export const runtime = "edge";
@@ -101,6 +95,8 @@ export default async function AccountPage({
       : "";
   const bio = typeof user.user_metadata?.bio === "string" ? user.user_metadata.bio : "";
 
+  const displayName = fullName || user.email?.split("@")[0] || "Account";
+
   const successMessage =
     sp?.status === "profile-saved"
       ? "Profile preferences updated successfully."
@@ -118,24 +114,12 @@ export default async function AccountPage({
 
   return (
     <div className="space-y-8">
-      <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-zinc-900/70 via-zinc-900/30 to-zinc-900/10 px-8 py-12 shadow-[0_20px_40px_-25px_rgba(9,9,11,0.75)]">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4">
-            <Badge variant="muted" className="w-fit border-border/40">
-              <CircleUserRound className="mr-1.5 h-3.5 w-3.5" />
-              Account
-            </Badge>
-            <div className="space-y-3">
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                {fullName || user.email?.split("@")[0] || "Account"}
-              </h1>
-              <p className="max-w-2xl text-base text-muted-foreground">
-                Manage your Livequest Studio identity, global analytics, and partner tooling from
-                one place.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <AccountHeaderCard
+        badgeIcon={<CircleUserRound className="mr-1.5 h-3.5 w-3.5" />}
+        heading={displayName}
+        description="Manage your Livequest Studio identity, global analytics, and partner tooling from one place."
+        actions={
+          <>
             <Button asChild variant="outline" size="sm" className="border-border/70">
               <Link href="/dashboard">
                 Back to dashboard
@@ -159,24 +143,13 @@ export default async function AccountPage({
                 Sign out
               </Button>
             </form>
-          </div>
-        </div>
-        {successMessage ? (
-          <div className="mt-8 flex w-full items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            <BadgeCheck className="h-4 w-4" />
-            <p>{successMessage}</p>
-          </div>
-        ) : null}
-        {errorMessage ? (
-          <div
-            className="mt-8 flex w-full items-center gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground/90"
-            role="alert"
-          >
-            <AlertCircle className="h-4 w-4" />
-            <p>{errorMessage}</p>
-          </div>
-        ) : null}
-      </div>
+          </>
+        }
+        successMessage={successMessage}
+        errorMessage={errorMessage}
+      />
+
+      <AccountSectionTabs />
 
       <SubscriptionPlanShell features={features} monthlyUsage={liveblogsThisMonth || 0} />
 
