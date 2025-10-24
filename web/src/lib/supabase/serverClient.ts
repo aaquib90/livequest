@@ -3,6 +3,14 @@ import { cookies } from "next/headers";
 
 type SupabaseSSRModule = typeof import("@supabase/ssr");
 
+const EXTERNAL_SUPABASE_MODULE_URL =
+  process.env.SUPABASE_SSR_MODULE_URL?.trim() || "";
+
+const dynamicImport =
+  new Function("u", "return import(u);") as SupabaseDynamicImport;
+
+type SupabaseDynamicImport = <T = unknown>(url: string) => Promise<T>;
+
 let supabaseModulePromise: Promise<SupabaseSSRModule> | null = null;
 let cachedCreateServerClient:
   | SupabaseSSRModule["createServerClient"]
@@ -11,7 +19,9 @@ let cachedCreateServerClient:
 async function resolveCreateServerClient() {
   if (!cachedCreateServerClient) {
     if (!supabaseModulePromise) {
-      supabaseModulePromise = import("@supabase/ssr");
+      supabaseModulePromise = EXTERNAL_SUPABASE_MODULE_URL
+        ? dynamicImport<SupabaseSSRModule>(EXTERNAL_SUPABASE_MODULE_URL)
+        : import("@supabase/ssr");
     }
     const mod = await supabaseModulePromise;
     cachedCreateServerClient = mod.createServerClient;

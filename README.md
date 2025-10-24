@@ -47,6 +47,7 @@ Create `web/.env.local` (not committed) and add the following environment variab
 | `CRON_SECRET` | ➖ | Shared secret protecting scheduled sync endpoints (`/api/matches/sync`, `/api/matches/complete`, scheduled publish). |
 | `SENTRY_DSN` | ➖ | Sentry project DSN to enable error and performance monitoring. |
 | `OPENAI_API_KEY` | ➖ | Enables the voice composer by proxying audio to OpenAI `gpt-4o-mini-transcribe`. |
+| `SUPABASE_SSR_MODULE_URL` | ➖ | Optional URL to a bundled `@supabase/ssr` module (e.g. hosted in R2). When set, the bundle is lazy-loaded at runtime to keep the edge worker size small. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ➖ | Public VAPID key that enables browser push notifications on embeds. Required if push is enabled. |
 | `VAPID_PRIVATE_KEY` | ➖ | Private VAPID key paired with the public key for sending pushes. |
 | `VAPID_SUBJECT` | ➖ | Contact string (usually `mailto:`) attached to push notifications. |
@@ -124,6 +125,10 @@ Visit `http://localhost:3000` to access the marketing page. Sign up or sign in t
 - Embed readers can opt into browser push notifications (service worker served from `/push-sw.js`).
 - Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` for web-push support.
 - Publishing an update triggers push payloads automatically; manual broadcasts are available via `POST /api/liveblogs/{id}/broadcast/notify`.
+
+### Supabase SSR Bundles
+- The edge runtime can lazy-load a pre-bundled copy of `@supabase/ssr` when `SUPABASE_SSR_MODULE_URL` is set. Bundle the module with `esbuild` (see `npx esbuild node_modules/@supabase/ssr/dist/module/index.js --bundle --format=esm --platform=browser --target=es2022 --minify --outfile=supabase-ssr.bundle.mjs`), upload it to public storage (e.g. Cloudflare R2), and point the env var at the resulting URL.
+- If the variable is not provided, the app falls back to the npm package, which increases the edge worker size.
 
 ### Discord Broadcasts
 - Add a Discord webhook URL in the Livequest settings to mirror updates to a channel (`discord_webhook_url` inside `settings`).

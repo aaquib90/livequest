@@ -11,8 +11,8 @@ node_modules/
 
 # OS
 .DS_Store
+supabase-ssr.bundle.mjs
 
 # Build outputs
 dist/
 out/
-
