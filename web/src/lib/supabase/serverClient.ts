@@ -1,5 +1,17 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import type { CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+const SUPABASE_SSR_MODULE =
+  process.env.SUPABASE_SSR_MODULE_URL ??
+  "https://esm.sh/@supabase/ssr@0.5.1?bundle&target=es2022";
+
+type SupabaseSSRModule = typeof import("@supabase/ssr");
+
+const supabaseSsrPromise: Promise<SupabaseSSRModule> = import(
+  /* webpackIgnore: true */ SUPABASE_SSR_MODULE
+);
+
+const { createServerClient } = await supabaseSsrPromise;
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -20,7 +32,7 @@ export async function createClient() {
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options });
+            cookieStore.set({ name, value: "", ...options });
           } catch {
             // Ignore if not possible
           }
@@ -29,5 +41,3 @@ export async function createClient() {
     }
   );
 }
-
-
