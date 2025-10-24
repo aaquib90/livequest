@@ -33,17 +33,6 @@ const percentFormatter = new Intl.NumberFormat(undefined, {
 });
 
 async function getMarketingMetrics(): Promise<MarketingMetrics> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return {
-      total_unique_viewers: 0,
-      total_views: 0,
-      total_interactions: 0,
-      sponsor_impressions: 0,
-      sponsor_clicks: 0,
-      sponsor_ctr: 0,
-    };
-  }
-
   const supabase = createAdminClient();
   try {
     const { data, error } = await supabase.rpc("marketing_metrics").single();
