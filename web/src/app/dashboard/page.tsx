@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   AlertCircle,
@@ -20,11 +21,11 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
-import { createClient } from "@/lib/supabase/serverClient";
+import type { AccountFeatures } from "@/lib/billing/types";
 
 import { CreateLiveblogDialog } from "./_components/create-liveblog-dialog";
 import { FolderInput } from "./_components/folder-input";
+import { createLiveblogAction, mutateLiveblogAction } from "./actions";
 
 export const runtime = "edge";
 
@@ -39,6 +40,17 @@ type DashboardLiveblog = {
   privacy: LiveblogPrivacy | null;
   folder: string | null;
   owner_id: string;
+};
+
+type DashboardOverviewResponse = {
+  user: {
+    id: string;
+    email: string | null;
+  };
+  features: AccountFeatures | null;
+  liveblogs: DashboardLiveblog[];
+  monthlyUsage: number;
+  monthlyLimit: number | null;
 };
 
 const statusCopy: Record<LiveblogStatus, { label: string; className: string }> =
@@ -73,136 +85,41 @@ const normaliseFolderKey = (value: string | null | undefined): string => {
 const displayFolderLabel = (value: string | null | undefined): string =>
   value?.trim() || "Unsorted";
 
-async function createLiveblog(formData: FormData) {
-  "use server";
-  const title = String(formData.get("title") || "").trim();
-  const description = String(formData.get("description") || "").trim();
-  const folder = String(formData.get("folder") || "").trim();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return redirect("/signin");
-  if (!title) return redirect("/dashboard?error=Title%20required");
-
-  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
-  const monthlyLimit =
-    typeof features?.monthly_liveblog_limit === "number"
-      ? features.monthly_liveblog_limit
-      : null;
-
-  if (monthlyLimit !== null) {
-    const now = new Date();
-    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const { count = 0 } = await supabase
-      .from("liveblogs")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", user.id)
-      .gte("created_at", periodStart.toISOString());
-    if (count >= monthlyLimit) {
-      return redirect(
-        "/dashboard?error=" +
-          encodeURIComponent("Monthly liveblog limit reached. Upgrade for unlimited projects."),
-      );
-    }
-  }
-  const { data, error } = await supabase
-    .from("liveblogs")
-    .insert({
-      title,
-      description,
-      owner_id: user.id,
-      folder: folder.length ? folder : null,
-    })
-    .select("id")
-    .single();
-  if (error)
-    return redirect(
-      `/dashboard?error=${encodeURIComponent(
-        error.message.includes("liveblog_monthly_limit_reached")
-          ? "Monthly liveblog limit reached. Upgrade for unlimited projects."
-          : error.message,
-      )}`,
-    );
-  return redirect(`/liveblogs/${data.id}/manage`);
-}
-
-async function mutateLiveblog(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id"));
-  const intent = String(formData.get("intent") || "update");
-  const folder = formData.get("folder");
-  const statusInput = formData.get("status");
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return redirect("/signin");
-
-  if (intent === "delete") {
-    await supabase.from("liveblogs").delete().eq("id", id).eq("owner_id", user.id);
-    return redirect("/dashboard");
-  }
-
-  const update: Record<string, unknown> = {};
-  if (folder !== null) {
-    const folderValue = String(folder).trim();
-    update.folder = folderValue.length ? folderValue : null;
-  }
-  if (statusInput !== null) {
-    const statusValue = String(statusInput) as LiveblogStatus;
-    if (statusCopy[statusValue]) {
-      update.status = statusValue;
-    }
-  }
-  if (Object.keys(update).length) {
-    await supabase.from("liveblogs").update(update).eq("id", id).eq("owner_id", user.id);
-  }
-  return redirect("/dashboard");
-}
-
 export default async function DashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; folder?: string }>;
 }) {
   const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/6oU6oG30BdUjdYEfZx1Nu01";
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const headerList = headers();
+  const cookieHeader = cookies().toString();
+  const host = headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
+
+  const overviewRes = await fetch(`${protocol}://${host}/api/internal/dashboard/overview`, {
+    headers: {
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+    },
+    cache: "no-store",
+  });
+
+  if (overviewRes.status === 401) {
     return redirect("/signin");
   }
+  if (!overviewRes.ok) {
+    throw new Error(`Failed to load dashboard data (${overviewRes.status})`);
+  }
+
+  const { user, features, liveblogs, monthlyUsage, monthlyLimit } =
+    (await overviewRes.json()) as DashboardOverviewResponse;
   const sp = await searchParams;
-  const { data: liveblogs } = await supabase
-    .from("liveblogs")
-    .select("id,title,created_at,status,privacy,folder,owner_id")
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: false });
   const liveblogList = (liveblogs as DashboardLiveblog[] | null) ?? [];
   const createdFormatter = new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   });
 
-  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
   const planLabel = features?.is_paid ? "Pro plan" : "Free plan";
-  const monthlyLimit =
-    typeof features?.monthly_liveblog_limit === "number"
-      ? features.monthly_liveblog_limit
-      : null;
-  let monthlyUsage = 0;
-  if (monthlyLimit !== null) {
-    const now = new Date();
-    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const { count = 0 } = await supabase
-      .from("liveblogs")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", user.id)
-      .gte("created_at", periodStart.toISOString());
-    monthlyUsage = count;
-  }
   const limitReached = monthlyLimit !== null && monthlyUsage >= monthlyLimit;
   const upgradePaymentLink = user.email
     ? `${STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(user.email)}`
@@ -282,7 +199,7 @@ export default async function DashboardPage({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <CreateLiveblogDialog
-              createLiveblog={createLiveblog}
+              createLiveblog={createLiveblogAction}
               folderOptions={folderOptions}
               monthlyLimit={monthlyLimit}
               monthlyUsage={monthlyUsage}
@@ -497,7 +414,7 @@ export default async function DashboardPage({
                             <ArrowUpRight className="ml-2 h-4 w-4" />
                           </Link>
                         </Button>
-                        <form action={mutateLiveblog}>
+                        <form action={mutateLiveblogAction}>
                           <input type="hidden" name="id" value={lb.id} />
                           <input type="hidden" name="intent" value="delete" />
                           <Button
@@ -513,7 +430,7 @@ export default async function DashboardPage({
                     </header>
 
                     <form
-                      action={mutateLiveblog}
+                      action={mutateLiveblogAction}
                       className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
                     >
                       <input type="hidden" name="id" value={lb.id} />

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Lock, Palette, Sparkles } from "lucide-react";
 
@@ -17,13 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { UpgradeHighlights } from "@/components/ui/upgrade-highlights";
-import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
+import type { AccountFeatures } from "@/lib/billing/types";
 import { PALETTE_PRESETS } from "@/lib/branding/constants";
-import { fetchAccountBrandingForUser } from "@/lib/branding/server";
 import { CORNER_CLASS_MAP, SURFACE_CLASS_MAP, accentOverlay } from "@/lib/branding/presentation";
 import { normaliseBranding, resolveAccentColor } from "@/lib/branding/utils";
-import type { PalettePresetKey } from "@/lib/branding/types";
-import { createClient } from "@/lib/supabase/serverClient";
+import type { AccountBranding, PalettePresetKey } from "@/lib/branding/types";
 import { cn } from "@/lib/utils";
 
 import AccountSectionTabs from "../components/AccountSectionTabs";
@@ -36,6 +35,16 @@ export const runtime = "edge";
 type AccountCustomizationSearchParams = {
   status?: string;
   error?: string;
+};
+
+type AccountCustomizationResponse = {
+  user: {
+    id: string;
+    email: string | null;
+    user_metadata: Record<string, any>;
+  };
+  features: AccountFeatures | null;
+  branding: AccountBranding;
 };
 
 const statusMessages: Record<string, string> = {
@@ -54,23 +63,33 @@ export default async function AccountCustomizationPage({
 }: {
   searchParams: Promise<AccountCustomizationSearchParams>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return redirect("/signin");
-  }
-
   const sp = await searchParams;
   const successMessage = sp?.status ? statusMessages[sp.status] ?? null : null;
   const errorMessage = sp?.error ? errorMessages[sp.error] ?? "Something went wrong. Please try again." : null;
 
-  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
+  const headerList = headers();
+  const cookieHeader = cookies().toString();
+  const host = headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
+
+  const dataRes = await fetch(`${protocol}://${host}/api/internal/account/customization`, {
+    headers: {
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+    },
+    cache: "no-store",
+  });
+
+  if (dataRes.status === 401) {
+    return redirect("/signin");
+  }
+  if (!dataRes.ok) {
+    throw new Error(`Failed to load customization data (${dataRes.status})`);
+  }
+
+  const { user, features, branding: brandingPayload } = (await dataRes.json()) as AccountCustomizationResponse;
   const canUsePremiumThemes = Boolean(features?.can_use_premium_themes);
 
-  const brandingRaw = await fetchAccountBrandingForUser(supabase).catch(() => null);
-  const resolvedBranding = normaliseBranding(brandingRaw ?? undefined);
+  const resolvedBranding = normaliseBranding(brandingPayload ?? undefined);
   const branding = resolvedBranding.account_id ? resolvedBranding : { ...resolvedBranding, account_id: user.id };
 
   const accentColor = resolveAccentColor(branding);

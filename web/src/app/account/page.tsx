@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, BarChart3, CircleUserRound, LogOut, Sparkles } from "lucide-react";
 
@@ -14,12 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createClient } from "@/lib/supabase/serverClient";
-import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
+import type { AccountFeatures } from "@/lib/billing/types";
 import AccountInsightsShell from "./components/AccountInsightsShell";
 import AccountSectionTabs from "./components/AccountSectionTabs";
 import { AccountHeaderCard } from "./components/AccountHeaderCard";
 import SubscriptionPlanShell from "./components/SubscriptionPlanShell";
+import { updateProfileAction, signOutAction } from "./actions";
 
 export const runtime = "edge";
 
@@ -28,37 +29,17 @@ type AccountPageSearchParams = {
   error?: string;
 };
 
-async function updateProfile(formData: FormData) {
-  "use server";
-  const fullName = String(formData.get("fullName") || "").trim();
-  const organisation = String(formData.get("organisation") || "").trim();
-  const bio = String(formData.get("bio") || "").trim();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return redirect("/signin");
-  }
-
-  await supabase.auth.updateUser({
-    data: {
-      full_name: fullName || null,
-      organisation: organisation || null,
-      bio: bio || null,
-    },
-  });
-
-  return redirect("/account?status=profile-saved");
-}
-
-async function signOutAction() {
-  "use server";
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  return redirect("/signin");
-}
+type AccountOverviewResponse = {
+  user: {
+    id: string;
+    email: string | null;
+    created_at: string;
+    last_sign_in_at: string | null;
+    user_metadata: Record<string, any>;
+  };
+  features: AccountFeatures | null;
+  liveblogsThisMonth: number;
+};
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -70,15 +51,28 @@ export default async function AccountPage({
 }: {
   searchParams: Promise<AccountPageSearchParams>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const sp = await searchParams;
+
+  const headerList = headers();
+  const cookieHeader = cookies().toString();
+  const host = headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
+
+  const overviewRes = await fetch(`${protocol}://${host}/api/internal/account/overview`, {
+    headers: {
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+    },
+    cache: "no-store",
+  });
+
+  if (overviewRes.status === 401) {
     return redirect("/signin");
   }
+  if (!overviewRes.ok) {
+    throw new Error(`Failed to load account overview (${overviewRes.status})`);
+  }
 
-  const sp = await searchParams;
+  const { user, features, liveblogsThisMonth } = (await overviewRes.json()) as AccountOverviewResponse;
 
   const memberSince = new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
@@ -102,15 +96,6 @@ export default async function AccountPage({
       ? "Profile preferences updated successfully."
       : null;
   const errorMessage = sp?.error ?? null;
-
-  const features = await fetchAccountFeaturesForUser(supabase).catch(() => null);
-  const now = new Date();
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const { count: liveblogsThisMonth = 0 } = await supabase
-    .from("liveblogs")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", user.id)
-    .gte("created_at", monthStart.toISOString());
 
   return (
     <div className="space-y-8">
@@ -168,7 +153,7 @@ export default async function AccountPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={updateProfile} className="space-y-5">
+            <form action={updateProfileAction} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full name</Label>
                 <Input

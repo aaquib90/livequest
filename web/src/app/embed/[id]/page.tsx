@@ -1,77 +1,64 @@
 export const runtime = 'edge';
 import type { CSSProperties } from "react";
 
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Sparkle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fetchAccountBrandingForLiveblog } from "@/lib/branding/server";
+import type { AccountBranding } from "@/lib/branding/types";
 import { CORNER_CLASS_MAP, SURFACE_CLASS_MAP, accentOverlay } from "@/lib/branding/presentation";
 import { normaliseBranding, resolveAccentColor } from "@/lib/branding/utils";
-import { matchTeam } from "@/lib/football/teams";
-import { createClient } from "@/lib/supabase/serverClient";
 import { cn } from "@/lib/utils";
 
 import EmbedClient from "./ui/EmbedClient";
 
 export const revalidate = 5;
 
+type EmbedOverviewResponse = {
+  liveblog: {
+    id: string;
+    title: string;
+    privacy: string;
+    settings: Record<string, unknown>;
+  };
+  updates: Array<{ id: string; content: any; published_at: string | null; pinned: boolean }>;
+  orderPref: "newest" | "oldest";
+  template: string | null;
+  match: {
+    homeTeamName: string | null;
+    awayTeamName: string | null;
+    homeTeamSlug: string | null;
+    awayTeamSlug: string | null;
+  };
+  branding: AccountBranding | null;
+  brandingAssets: { logoUrl: string | null; backgroundUrl: string | null };
+};
+
 export default async function EmbedPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const supabase = await createClient();
   const { id } = await params;
-  const { data: liveblog } = await supabase
-    .from("liveblogs")
-    .select("id,title,privacy,settings")
-    .eq("id", id)
-    .single();
-  if (!liveblog) return notFound();
+  const headerList = headers();
+  const host = headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
 
-  const { data: updates } = await supabase
-    .from("updates")
-    .select("id,content,published_at,pinned")
-    .eq("liveblog_id", liveblog.id)
-    .is("deleted_at", null)
-    .eq("status", "published")
-    .order("pinned", { ascending: false })
-    .order("published_at", { ascending: false })
-    .limit(50);
+  const overviewRes = await fetch(`${protocol}://${host}/api/internal/embed/${id}/overview`, {
+    cache: "no-store",
+  });
 
-  const orderPref =
-    (liveblog.settings?.update_order as "newest" | "oldest") || "newest";
-  const template = (liveblog.settings?.template as string | undefined) ?? null;
-  const matchId =
-    (liveblog.settings?.match_id as string | number | undefined) ?? undefined;
-
-  let homeTeamName: string | null = null;
-  let awayTeamName: string | null = null;
-  let homeTeamSlug: string | null = null;
-  let awayTeamSlug: string | null = null;
-
-  if (template === "football" && matchId) {
-    const { data: match } = await supabase
-      .from("matches")
-      .select("home_team_name,away_team_name")
-      .eq("id", matchId)
-      .single();
-    if (match) {
-      homeTeamName = match.home_team_name as string;
-      awayTeamName = match.away_team_name as string;
-      const home = homeTeamName ? matchTeam(homeTeamName) : null;
-      const away = awayTeamName ? matchTeam(awayTeamName) : null;
-      homeTeamSlug = home?.slug ?? null;
-      awayTeamSlug = away?.slug ?? null;
-    }
+  if (overviewRes.status === 404) return notFound();
+  if (!overviewRes.ok) {
+    throw new Error(`Failed to load embed (${overviewRes.status})`);
   }
 
-  const brandingRaw = await fetchAccountBrandingForLiveblog(supabase, liveblog.id).catch(
-    () => null
-  );
-  const branding = brandingRaw ? normaliseBranding(brandingRaw) : null;
+  const { liveblog, updates, orderPref, template, match, branding: brandingRaw, brandingAssets } =
+    (await overviewRes.json()) as EmbedOverviewResponse;
+
+  const branding = brandingRaw ? normaliseBranding(brandingRaw as any) : null;
   const accentColor = branding ? resolveAccentColor(branding) : null;
   const accentSoft = accentColor ? accentOverlay(accentColor, 0.18) : null;
   const cornerClass = branding?.corner_style
@@ -80,19 +67,9 @@ export default async function EmbedPage({
   const surfaceClass = branding?.surface_style
     ? SURFACE_CLASS_MAP[branding.surface_style] ?? SURFACE_CLASS_MAP.glass
     : "border border-border/70 bg-background/60 backdrop-blur";
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const buildPublicUrl = (path: string | null | undefined) => {
-    if (!supabaseUrl || !path) return null;
-    const safePath = path
-      .split("/")
-      .filter(Boolean)
-      .map(encodeURIComponent)
-      .join("/");
-    return `${supabaseUrl}/storage/v1/object/public/brand-assets/${safePath}`;
-  };
+  const { logoUrl, backgroundUrl } = brandingAssets;
 
-  const logoUrl = buildPublicUrl(branding?.logo_path ?? null);
-  const backgroundUrl = buildPublicUrl(branding?.background_path ?? null);
+  const { homeTeamName, awayTeamName, homeTeamSlug, awayTeamSlug } = match || {};
 
   const cardStyle = {
     ...(accentSoft ? { borderColor: accentSoft } : {}),
