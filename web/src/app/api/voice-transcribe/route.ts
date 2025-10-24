@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
 
@@ -15,11 +14,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const accessToken = extractSupabaseAccessToken(req);
+    const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!accessToken || !projectUrl || !anonKey) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
+    const userResponse = await fetch(`${projectUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: anonKey,
+      },
+    });
+    if (!userResponse.ok) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -79,5 +88,35 @@ export async function POST(req: NextRequest) {
       { error: "server_error", detail: message },
       { status: 500 }
     );
+  }
+}
+
+function extractSupabaseAccessToken(req: NextRequest): string | null {
+  const cookies = req.headers.get("cookie") || "";
+  if (!cookies.length) return null;
+  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!projectUrl) return null;
+  const projectRef = projectUrl.replace(/^https?:\/\//, "").split(".")[0];
+  if (!projectRef) return null;
+  const cookieName = `sb-${projectRef}-auth-token`;
+  const tokenCookie = cookies
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${cookieName}=`));
+  if (!tokenCookie) return null;
+  const value = tokenCookie.slice(cookieName.length + 1);
+  try {
+    const decoded = decodeURIComponent(value);
+    const parsed = JSON.parse(decoded);
+    const sessionToken =
+      parsed?.access_token ??
+      parsed?.currentSession?.access_token ??
+      parsed?.currentSession?.accessToken ??
+      null;
+    return typeof sessionToken === "string" && sessionToken.length > 0
+      ? sessionToken
+      : null;
+  } catch {
+    return null;
   }
 }
