@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 // Use Web Crypto instead of Node 'crypto' for Edge runtime
 
 export const runtime = 'edge';
@@ -36,7 +36,6 @@ async function stableHashToInt31(input: string): Promise<number> {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
   const season = typeof body?.season === 'number' ? body.season : 2025;
   const url = body?.url || `https://fixturedownload.com/feed/json/epl-${season}`;
@@ -76,13 +75,14 @@ export async function POST(req: NextRequest) {
 
   if (rows.length === 0) return NextResponse.json({ ok: true, season, imported: 0 });
 
-  const { error, data } = await supabase
-    .from('matches')
-    .upsert(rows, { onConflict: 'id' })
-    .select('id');
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const data = await supabaseEnsure<{ id: string }[]>(req, {
+    action: 'upsert',
+    table: 'matches',
+    values: rows,
+    onConflict: 'id',
+    returning: 'representation',
+  });
 
   return NextResponse.json({ ok: true, season, imported: data?.length ?? 0 });
 }
-
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
@@ -30,23 +30,27 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'invalid_payload' }, { status: 400, headers: cors() });
     }
 
-    const supa = createAdminClient();
-
     // Validate that update belongs to liveblog and liveblog is public/unlisted
-    const { data: lb } = await supa
-      .from('liveblogs')
-      .select('id,privacy,status')
-      .eq('id', liveblogId)
-      .single();
+    const lb = await supabaseEnsure<{ id: string; privacy: string; status: string } | null>(req, {
+      action: 'select',
+      table: 'liveblogs',
+      columns: 'id,privacy,status',
+      filters: [{ column: 'id', op: 'eq', value: liveblogId }],
+      single: true,
+    });
     if (!lb || lb.status !== 'active' || !['public','unlisted'].includes(lb.privacy)) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403, headers: cors() });
     }
-    const { data: up } = await supa
-      .from('updates')
-      .select('id, liveblog_id')
-      .eq('id', updateId)
-      .eq('liveblog_id', liveblogId)
-      .single();
+    const up = await supabaseEnsure<{ id: string; liveblog_id: string } | null>(req, {
+      action: 'select',
+      table: 'updates',
+      columns: 'id, liveblog_id',
+      filters: [
+        { column: 'id', op: 'eq', value: updateId },
+        { column: 'liveblog_id', op: 'eq', value: liveblogId },
+      ],
+      single: true,
+    });
     if (!up) {
       return NextResponse.json({ error: 'not_found' }, { status: 404, headers: cors() });
     }
@@ -55,32 +59,43 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const device_hash = await sha256(deviceId + '|' + userAgent);
 
     // Toggle: if exists -> delete; else insert
-    const { data: existing } = await supa
-      .from('update_reactions')
-      .select('id')
-      .eq('update_id', updateId)
-      .eq('reaction', type)
-      .eq('device_hash', device_hash)
-      .limit(1)
-      .maybeSingle();
+    const existing = await supabaseEnsure<{ id: string } | null>(req, {
+      action: 'select',
+      table: 'update_reactions',
+      columns: 'id',
+      filters: [
+        { column: 'update_id', op: 'eq', value: updateId },
+        { column: 'reaction', op: 'eq', value: type },
+        { column: 'device_hash', op: 'eq', value: device_hash },
+      ],
+      limit: 1,
+      maybeSingle: true,
+    });
 
     if (existing) {
-      await supa
-        .from('update_reactions')
-        .delete()
-        .eq('id', existing.id);
+      await supabaseEnsure(req, {
+        action: 'delete',
+        table: 'update_reactions',
+        filters: [{ column: 'id', op: 'eq', value: existing.id }],
+        returning: 'minimal',
+      });
     } else {
-      await supa.from('update_reactions').insert({
-        liveblog_id: liveblogId,
-        update_id: updateId,
-        reaction: type,
-        device_hash,
-        user_agent: userAgent,
-      } as any);
+      await supabaseEnsure(req, {
+        action: 'insert',
+        table: 'update_reactions',
+        values: {
+          liveblog_id: liveblogId,
+          update_id: updateId,
+          reaction: type,
+          device_hash,
+          user_agent: userAgent,
+        },
+        returning: 'minimal',
+      });
     }
 
-    const counts = await getCounts(supa, updateId);
-    const active = await getActiveMap(supa, updateId, device_hash);
+    const counts = await getCounts(req, updateId);
+    const active = await getActiveMap(req, updateId, device_hash);
 
     return NextResponse.json({ ok: true, counts, active }, { status: 200, headers: cors() });
   } catch {
@@ -94,12 +109,14 @@ async function sha256(input: string) {
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function getCounts(supa: ReturnType<typeof createAdminClient>, updateId: string) {
-  const { data } = await supa
-    .from('update_reactions')
-    .select('reaction, count:count(*)')
-    .eq('update_id', updateId)
-    .group('reaction');
+async function getCounts(req: Request, updateId: string) {
+  const data = await supabaseEnsure<Array<{ reaction: ReactionType; count: number }>>(req, {
+    action: 'select',
+    table: 'update_reactions',
+    columns: 'reaction, count:count(*)',
+    filters: [{ column: 'update_id', op: 'eq', value: updateId }],
+    group: 'reaction',
+  });
   const base = { smile: 0, heart: 0, thumbs_up: 0 } as Record<ReactionType, number>;
   for (const row of data || []) {
     base[row.reaction as ReactionType] = Number((row as any).count || 0);
@@ -107,18 +124,20 @@ async function getCounts(supa: ReturnType<typeof createAdminClient>, updateId: s
   return base;
 }
 
-async function getActiveMap(supa: ReturnType<typeof createAdminClient>, updateId: string, device_hash: string) {
-  const { data } = await supa
-    .from('update_reactions')
-    .select('reaction')
-    .eq('update_id', updateId)
-    .eq('device_hash', device_hash);
+async function getActiveMap(req: Request, updateId: string, device_hash: string) {
+  const data = await supabaseEnsure<Array<{ reaction: ReactionType }>>(req, {
+    action: 'select',
+    table: 'update_reactions',
+    columns: 'reaction',
+    filters: [
+      { column: 'update_id', op: 'eq', value: updateId },
+      { column: 'device_hash', op: 'eq', value: device_hash },
+    ],
+  });
   const map = { smile: false, heart: false, thumbs_up: false } as Record<ReactionType, boolean>;
   for (const row of data || []) {
     map[row.reaction as ReactionType] = true;
   }
   return map;
 }
-
-
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
@@ -24,16 +24,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!endpoint || typeof endpoint !== 'string') {
       return NextResponse.json({ error: 'invalid_endpoint' }, { status: 400, headers: cors() });
     }
-    const supa = createAdminClient();
-    await supa
-      .from('push_subscriptions')
-      .delete()
-      .eq('liveblog_id', liveblogId)
-      .eq('endpoint', endpoint);
+    await supabaseEnsure(req, {
+      action: 'delete',
+      table: 'push_subscriptions',
+      filters: [
+        { column: 'liveblog_id', op: 'eq', value: liveblogId },
+        { column: 'endpoint', op: 'eq', value: endpoint },
+      ],
+      returning: 'minimal',
+    });
     return NextResponse.json({ ok: true }, { status: 200, headers: cors() });
   } catch {
     return NextResponse.json({ ok: false }, { status: 200, headers: cors() });
   }
 }
-
 

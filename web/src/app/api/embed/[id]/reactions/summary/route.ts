@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
@@ -30,24 +30,28 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'missing_updateIds' }, { status: 400, headers: cors() });
     }
 
-    const supa = createAdminClient();
-
     // Validate liveblog visibility
-    const { data: lb } = await supa
-      .from('liveblogs')
-      .select('id,privacy,status')
-      .eq('id', liveblogId)
-      .single();
+    const lb = await supabaseEnsure<{ id: string; privacy: string; status: string } | null>(req, {
+      action: 'select',
+      table: 'liveblogs',
+      columns: 'id,privacy,status',
+      filters: [{ column: 'id', op: 'eq', value: liveblogId }],
+      single: true,
+    });
     if (!lb || lb.status !== 'active' || !['public','unlisted'].includes(lb.privacy)) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403, headers: cors() });
     }
 
     // Ensure all updateIds belong to this liveblog
-    const { data: ups } = await supa
-      .from('updates')
-      .select('id')
-      .in('id', updateIds)
-      .eq('liveblog_id', liveblogId);
+    const ups = await supabaseEnsure<Array<{ id: string }>>(req, {
+      action: 'select',
+      table: 'updates',
+      columns: 'id',
+      filters: [
+        { column: 'id', op: 'in', value: updateIds },
+        { column: 'liveblog_id', op: 'eq', value: liveblogId },
+      ],
+    });
     const validIds = new Set((ups || []).map((u) => u.id));
     const filteredIds = updateIds.filter((id) => validIds.has(id));
     if (!filteredIds.length) {
@@ -55,11 +59,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 
     // Counts per update and reaction
-    const { data: countsRows } = await supa
-      .from('update_reactions')
-      .select('update_id, reaction, count:count(*)')
-      .in('update_id', filteredIds)
-      .group('update_id, reaction');
+    const countsRows = await supabaseEnsure<Array<{ update_id: string; reaction: ReactionType; count: number }>>(req, {
+      action: 'select',
+      table: 'update_reactions',
+      columns: 'update_id, reaction, count:count(*)',
+      filters: [{ column: 'update_id', op: 'in', value: filteredIds }],
+      group: 'update_id, reaction',
+    });
 
     const counts: Record<string, Record<ReactionType, number>> = {};
     for (const id of filteredIds) {
@@ -79,11 +85,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       active[id] = { smile: false, heart: false, thumbs_up: false };
     }
     if (device_hash) {
-      const { data: activeRows } = await supa
-        .from('update_reactions')
-        .select('update_id, reaction')
-        .in('update_id', filteredIds)
-        .eq('device_hash', device_hash);
+      const activeRows = await supabaseEnsure<Array<{ update_id: string; reaction: ReactionType }>>(req, {
+        action: 'select',
+        table: 'update_reactions',
+        columns: 'update_id, reaction',
+        filters: [
+          { column: 'update_id', op: 'in', value: filteredIds },
+          { column: 'device_hash', op: 'eq', value: device_hash },
+        ],
+      });
       for (const row of activeRows || []) {
         active[(row as any).update_id][(row as any).reaction as ReactionType] = true;
       }
@@ -100,6 +110,5 @@ async function sha256(input: string) {
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-
 
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
 import { stripeRequest, requireStripeSecret, StripeApiError } from "@/lib/billing/stripeEdge";
-import { createAdminClient } from "@/lib/supabase/adminClient";
+import { supabaseEnsure } from "@/lib/supabase/gatewayClient";
 import { createClient } from "@/lib/supabase/serverClient";
 
 export const runtime = "edge";
@@ -28,13 +28,15 @@ export async function POST(req: NextRequest) {
     }
 
     const stripeSecret = requireStripeSecret();
-    const admin = createAdminClient();
-
-    const { data: existingSubscription } = await admin
-      .from("billing_subscriptions")
-      .select("stripe_customer_id")
-      .eq("account_id", user.id)
-      .maybeSingle();
+    const existingSubscription = await supabaseEnsure<
+      { stripe_customer_id: string | null } | null
+    >(req, {
+      action: "select",
+      table: "billing_subscriptions",
+      columns: "stripe_customer_id",
+      filters: [{ column: "account_id", op: "eq", value: user.id }],
+      maybeSingle: true,
+    });
 
     let stripeCustomerId: string | null =
       typeof existingSubscription?.stripe_customer_id === "string"
@@ -49,22 +51,16 @@ export async function POST(req: NextRequest) {
       stripeCustomerId = customer.id;
     }
 
-    const upsertResponse = await admin
-      .from("billing_subscriptions")
-      .upsert(
-        {
-          account_id: user.id,
-          stripe_customer_id: stripeCustomerId,
-        },
-        { onConflict: "account_id" },
-      )
-      .select("account_id")
-      .maybeSingle();
-
-    if (upsertResponse.error) {
-      console.error("supabase_upsert_error", upsertResponse.error);
-      throw upsertResponse.error;
-    }
+    await supabaseEnsure(req, {
+      action: "upsert",
+      table: "billing_subscriptions",
+      values: {
+        account_id: user.id,
+        stripe_customer_id: stripeCustomerId,
+      },
+      onConflict: "account_id",
+      returning: "minimal",
+    });
 
     const origin = req.nextUrl.origin;
     const sessionParams = new URLSearchParams();

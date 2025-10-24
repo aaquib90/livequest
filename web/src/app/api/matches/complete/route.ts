@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseRequest } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
 // Marks matches as completed (FT) when their scheduled date/time has passed by a buffer
 // and they are not already in a terminal status. Intended to be called via cron.
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
 
   const requiredSecret = process.env.CRON_SECRET;
@@ -28,15 +27,23 @@ export async function POST(req: NextRequest) {
   // Coerce to PostgREST list string for NOT IN
   const list = '(' + terminalStatuses.map((s) => `"${s}"`).join(',') + ')';
 
-  const { error, count } = await supabase
-    .from('matches')
-    .update({ status: 'FT' })
-    .lt('date', cutoffIso)
-    .not('status', 'in', list)
-    .select('id', { head: true, count: 'exact' });
+  const response = await supabaseRequest(req, {
+    action: 'update',
+    table: 'matches',
+    values: { status: 'FT' },
+    filters: [
+      { column: 'date', op: 'lt', value: cutoffIso },
+      { column: 'status', op: 'not', operator: 'in', value: list },
+    ],
+    head: true,
+    count: 'exact',
+    returning: 'minimal',
+  });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, markedCompleted: count ?? 0, cutoffIso, bufferMinutes });
+  if (response.error) {
+    return NextResponse.json({ error: response.error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, markedCompleted: response.count ?? 0, cutoffIso, bufferMinutes });
 }
-
 

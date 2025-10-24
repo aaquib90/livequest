@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/adminClient";
+import { supabaseEnsure } from "@/lib/supabase/gatewayClient";
 
 export const runtime = "edge";
 
@@ -11,19 +11,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
-    const supabase = createAdminClient();
     const now = new Date();
     const nowIso = now.toISOString();
 
-    const { data: slots, error } = await supabase
-      .from("sponsor_slots")
-      .select("id,status,starts_at,ends_at")
-      .in("status", ["scheduled", "active"])
-      .limit(1000);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const slots = await supabaseEnsure<Array<{ id: string; status: string; starts_at: string | null; ends_at: string | null }>>(req, {
+      action: "select",
+      table: "sponsor_slots",
+      columns: "id,status,starts_at,ends_at",
+      filters: [{ column: "status", op: "in", value: ["scheduled", "active"] }],
+      limit: 1000,
+    });
 
     let activated = 0;
     let archived = 0;
@@ -42,19 +39,29 @@ export async function POST(req: Request) {
         !!endsAt && endsAt.getTime() <= now.getTime();
 
       if (shouldActivate) {
-        const { error: updateError } = await supabase
-          .from("sponsor_slots")
-          .update({ status: "active", updated_at: nowIso })
-          .eq("id", slot.id)
-          .eq("status", "scheduled");
-        if (!updateError) activated += 1;
+        const res = await supabaseEnsure(req, {
+          action: "update",
+          table: "sponsor_slots",
+          values: { status: "active", updated_at: nowIso },
+          filters: [
+            { column: "id", op: "eq", value: slot.id },
+            { column: "status", op: "eq", value: "scheduled" },
+          ],
+          returning: "minimal",
+        }).catch(() => null);
+        if (res !== null) activated += 1;
       } else if (shouldArchive) {
-        const { error: archiveError } = await supabase
-          .from("sponsor_slots")
-          .update({ status: "archived", updated_at: nowIso })
-          .eq("id", slot.id)
-          .in("status", ["scheduled", "active"]);
-        if (!archiveError) archived += 1;
+        const res = await supabaseEnsure(req, {
+          action: "update",
+          table: "sponsor_slots",
+          values: { status: "archived", updated_at: nowIso },
+          filters: [
+            { column: "id", op: "eq", value: slot.id },
+            { column: "status", op: "in", value: ["scheduled", "active"] },
+          ],
+          returning: "minimal",
+        }).catch(() => null);
+        if (res !== null) archived += 1;
       }
     }
 

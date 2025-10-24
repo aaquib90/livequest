@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 import { fetchFixtures } from '@/lib/football/api';
 import { TOP_LEAGUE_IDS, currentSeasonUtc } from '@/lib/football/config';
 
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
   const requiredSecret = process.env.CRON_SECRET;
   if (requiredSecret) {
@@ -50,16 +49,16 @@ export async function POST(req: NextRequest) {
 
     if (rows.length === 0) continue;
 
-    const { error, count } = await supabase
-      .from('matches')
-      .upsert(rows, { onConflict: 'id' })
-      .select('*', { count: 'exact', head: true });
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    totalUpserts += count ?? 0;
+    const data = await supabaseEnsure<{ id: string }[]>(req, {
+      action: 'upsert',
+      table: 'matches',
+      values: rows,
+      onConflict: 'id',
+      returning: 'representation',
+    });
+    totalUpserts += data?.length ?? 0;
   }
 
   return NextResponse.json({ ok: true, upserted: totalUpserts, season, range: { from, to } });
 }
-
 

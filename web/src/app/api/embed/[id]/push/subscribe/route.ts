@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 
 export const runtime = 'edge';
 
@@ -24,7 +24,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!subscription || typeof subscription.endpoint !== 'string') {
       return NextResponse.json({ error: 'invalid_subscription' }, { status: 400, headers: cors() });
     }
-    const supa = createAdminClient();
     const userAgent = (req.headers.get('user-agent') || '').slice(0, 512);
     const payload = {
       liveblog_id: liveblogId,
@@ -33,13 +32,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       expiration_time: subscription.expirationTime ? new Date(subscription.expirationTime) : null,
       user_agent: userAgent,
     } as any;
-    await supa
-      .from('push_subscriptions')
-      .upsert(payload, { onConflict: 'liveblog_id,endpoint' });
+    await supabaseEnsure(req, {
+      action: 'upsert',
+      table: 'push_subscriptions',
+      values: payload,
+      onConflict: 'liveblog_id,endpoint',
+      returning: 'minimal',
+    });
     return NextResponse.json({ ok: true }, { status: 200, headers: cors() });
   } catch {
     return NextResponse.json({ ok: false }, { status: 200, headers: cors() });
   }
 }
-
 

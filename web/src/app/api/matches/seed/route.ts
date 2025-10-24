@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/adminClient';
+import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
 import { fetchFixturesRangePaged, fetchFixturesByDatePaged } from '@/lib/football/api';
 import { fetchFdMatchesByDate } from '@/lib/football/footballDataApi';
 import { TOP_LEAGUE_IDS, currentSeasonUtc } from '@/lib/football/config';
@@ -8,7 +8,6 @@ export const runtime = 'edge';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
 
   const secret = process.env.CRON_SECRET;
@@ -78,11 +77,13 @@ export async function POST(req: NextRequest) {
     if (rows.length === 0) {
       return NextResponse.json({ ok: true, season, range: { from, to, date }, fetched: 0, upserted: 0, perLeague: [] });
     }
-    const { error, data } = await supabase
-      .from('matches')
-      .upsert(rows, { onConflict: 'id' })
-      .select('id');
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const data = await supabaseEnsure<{ id: string }[]>(req, {
+      action: 'upsert',
+      table: 'matches',
+      values: rows,
+      onConflict: 'id',
+      returning: 'representation',
+    });
     const upserted = data?.length ?? 0;
     totalUpserted += upserted;
     // Summaries per league
@@ -117,11 +118,13 @@ export async function POST(req: NextRequest) {
         raw: f,
       }));
       if (rows.length === 0) continue;
-      const { error, data } = await supabase
-        .from('matches')
-        .upsert(rows, { onConflict: 'id' })
-        .select('id');
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      const data = await supabaseEnsure<{ id: string }[]>(req, {
+        action: 'upsert',
+        table: 'matches',
+        values: rows,
+        onConflict: 'id',
+        returning: 'representation',
+      });
       const upserted = data?.length ?? 0;
       totalUpserted += upserted;
       perLeague.push({ league, fetched: fixtures.length, upserted });
@@ -130,5 +133,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, season, range: { from, to, date }, fetched: totalFetched, upserted: totalUpserted, perLeague });
 }
-
-

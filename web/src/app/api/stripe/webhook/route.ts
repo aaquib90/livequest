@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { verifyStripeSignature } from "@/lib/billing/stripeEdge";
-import { createAdminClient } from "@/lib/supabase/adminClient";
+import { supabaseEnsure } from "@/lib/supabase/gatewayClient";
 
 export const runtime = "edge";
-
-type AdminClient = ReturnType<typeof createAdminClient>;
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
@@ -28,17 +26,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-
   try {
     switch (event.type) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted":
-        await upsertSubscriptionFromStripe(event.data.object as StripeSubscription, admin, event.id);
+        await upsertSubscriptionFromStripe(
+          req,
+          event.data.object as StripeSubscription,
+          event.id
+        );
         break;
       case "checkout.session.completed":
-        await syncCheckoutSession(event.data.object as StripeCheckoutSession, admin, event.id);
+        await syncCheckoutSession(req, event.data.object as StripeCheckoutSession, event.id);
         break;
       default:
         break;
@@ -52,15 +52,15 @@ export async function POST(req: NextRequest) {
 }
 
 async function upsertSubscriptionFromStripe(
+  req: NextRequest,
   subscription: StripeSubscription,
-  admin: AdminClient,
   eventId: string,
 ) {
   const accountId =
     getAccountIdFromMetadata(subscription.metadata) ||
-    (await lookupAccountIdBySubscription(admin, subscription.id)) ||
+    (await lookupAccountIdBySubscription(req, subscription.id)) ||
     (await lookupAccountIdByCustomer(
-      admin,
+      req,
       typeof subscription.customer === "string"
         ? subscription.customer
         : subscription.customer?.id ?? null,
@@ -95,17 +95,18 @@ async function upsertSubscriptionFromStripe(
     last_event_id: eventId,
   };
 
-  const { error } = await admin
-    .from("billing_subscriptions")
-    .upsert(payload, { onConflict: "account_id" });
-  if (error) {
-    throw error;
-  }
+  await supabaseEnsure(req, {
+    action: "upsert",
+    table: "billing_subscriptions",
+    values: payload,
+    onConflict: "account_id",
+    returning: "minimal",
+  });
 }
 
 async function syncCheckoutSession(
+  req: NextRequest,
   session: StripeCheckoutSession,
-  admin: AdminClient,
   eventId: string,
 ) {
   const accountId =
@@ -133,28 +134,27 @@ async function syncCheckoutSession(
     last_event_id: eventId,
   };
 
-  const { data: updatedRows, error: updateError } = await admin
-    .from("billing_subscriptions")
-    .update(payload)
-    .eq("account_id", accountId)
-    .select("account_id");
-
-  if (updateError) {
-    throw updateError;
-  }
+  const updatedRows = await supabaseEnsure<{ account_id: string }[]>(req, {
+    action: "update",
+    table: "billing_subscriptions",
+    values: payload,
+    filters: [{ column: "account_id", op: "eq", value: accountId }],
+    returning: "representation",
+    select: "account_id",
+  });
 
   if (!updatedRows?.length) {
-    const { error: insertError } = await admin
-      .from("billing_subscriptions")
-      .insert({
+    await supabaseEnsure(req, {
+      action: "insert",
+      table: "billing_subscriptions",
+      values: {
         account_id: accountId,
         plan: "free",
         status: "inactive",
         ...payload,
-      });
-    if (insertError) {
-      throw insertError;
-    }
+      },
+      returning: "minimal",
+    });
   }
 }
 
@@ -170,31 +170,33 @@ function getAccountIdFromMetadata(metadata: StripeMetadata): string | null {
 }
 
 async function lookupAccountIdBySubscription(
-  admin: AdminClient,
+  req: NextRequest,
   subscriptionId: string | null,
 ): Promise<string | null> {
   if (!subscriptionId) return null;
-  const { data, error } = await admin
-    .from("billing_subscriptions")
-    .select("account_id")
-    .eq("stripe_subscription_id", subscriptionId)
-    .maybeSingle();
-  if (error) throw error;
+  const data = await supabaseEnsure<{ account_id: string } | null>(req, {
+    action: "select",
+    table: "billing_subscriptions",
+    columns: "account_id",
+    filters: [{ column: "stripe_subscription_id", op: "eq", value: subscriptionId }],
+    maybeSingle: true,
+  });
   const accountId = data?.account_id;
   return typeof accountId === "string" ? accountId : null;
 }
 
 async function lookupAccountIdByCustomer(
-  admin: AdminClient,
+  req: NextRequest,
   customerId: string | null,
 ): Promise<string | null> {
   if (!customerId) return null;
-  const { data, error } = await admin
-    .from("billing_subscriptions")
-    .select("account_id")
-    .eq("stripe_customer_id", customerId)
-    .maybeSingle();
-  if (error) throw error;
+  const data = await supabaseEnsure<{ account_id: string } | null>(req, {
+    action: "select",
+    table: "billing_subscriptions",
+    columns: "account_id",
+    filters: [{ column: "stripe_customer_id", op: "eq", value: customerId }],
+    maybeSingle: true,
+  });
   const accountId = data?.account_id;
   return typeof accountId === "string" ? accountId : null;
 }
