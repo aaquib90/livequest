@@ -7,13 +7,22 @@ const SUPABASE_SSR_MODULE =
 
 type SupabaseSSRModule = typeof import("@supabase/ssr");
 
-const supabaseSsrPromise: Promise<SupabaseSSRModule> = import(
-  /* webpackIgnore: true */ SUPABASE_SSR_MODULE
-);
+let cachedCreateServerClient:
+  | SupabaseSSRModule["createServerClient"]
+  | null = null;
 
-const { createServerClient } = await supabaseSsrPromise;
+async function resolveCreateServerClient() {
+  if (!cachedCreateServerClient) {
+    const mod: SupabaseSSRModule = await import(
+      /* webpackIgnore: true */ SUPABASE_SSR_MODULE
+    );
+    cachedCreateServerClient = mod.createServerClient;
+  }
+  return cachedCreateServerClient;
+}
 
 export async function createClient() {
+  const createServerClient = await resolveCreateServerClient();
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
