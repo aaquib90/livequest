@@ -106,6 +106,11 @@ export default function AnalyticsDashboardClient() {
   const sponsors = data?.topSponsors ?? [];
   const referrers = useMemo(() => data?.referrers ?? [], [data]);
   const timeseries = useMemo(() => data?.timeseries ?? [], [data]);
+  const totals = data?.totals ?? null;
+  const totalLiveblogs = totals?.totalLiveblogs ?? 0;
+  const activeLiveblogs = totals?.activeLiveblogs ?? 0;
+  const archivedLiveblogs = totals?.archivedLiveblogs ?? 0;
+  const uniqueFolders = totals?.uniqueFolders ?? 0;
 
   const sponsorCtr = summary?.sponsor_ctr_30d ? Number(summary.sponsor_ctr_30d) : 0;
   const unique30d = summary?.unique_viewers_30d ?? 0;
@@ -273,6 +278,53 @@ export default function AnalyticsDashboardClient() {
               {integerFormatter.format(summary.sponsor_impressions_30d ?? 0)} impressions ·{' '}
               {integerFormatter.format(summary.sponsor_clicks_30d ?? 0)} clicks
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <Card className="border-border/70 bg-background/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Active liveblogs</CardTitle>
+            <CardDescription>
+              Coverage currently published or in progress across your workspace.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-baseline gap-3">
+            <span className="text-4xl font-semibold text-foreground">
+              {integerFormatter.format(activeLiveblogs)}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              of {integerFormatter.format(totalLiveblogs)} total
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="border-border/70 bg-background/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Archived library</CardTitle>
+            <CardDescription>
+              Completed or locked liveblogs kept for reference and sponsor reporting.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-baseline gap-3">
+            <span className="text-4xl font-semibold text-foreground">
+              {integerFormatter.format(archivedLiveblogs)}
+            </span>
+            <span className="text-sm text-muted-foreground">archived liveblogs</span>
+          </CardContent>
+        </Card>
+        <Card className="border-border/70 bg-background/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Folders in use</CardTitle>
+            <CardDescription>
+              Organise coverage with shared taxonomy to keep the newsroom aligned.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-baseline gap-3">
+            <span className="text-4xl font-semibold text-foreground">
+              {integerFormatter.format(uniqueFolders)}
+            </span>
+            <span className="text-sm text-muted-foreground">labelled folders</span>
           </CardContent>
         </Card>
       </div>

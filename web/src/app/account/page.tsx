@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, BarChart3, CircleUserRound, LogOut, Sparkles } from "lucide-react";
+import { ArrowUpRight, CircleUserRound, LogOut, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AccountFeatures } from "@/lib/billing/types";
-import AccountInsightsShell from "./components/AccountInsightsShell";
 import AccountSectionTabs from "./components/AccountSectionTabs";
 import { AccountHeaderCard } from "./components/AccountHeaderCard";
 import SubscriptionPlanShell from "./components/SubscriptionPlanShell";
@@ -102,7 +101,7 @@ export default async function AccountPage({
       <AccountHeaderCard
         badgeIcon={<CircleUserRound className="mr-1.5 h-3.5 w-3.5" />}
         heading={displayName}
-        description="Manage your Livequest Studio identity, global analytics, and partner tooling from one place."
+        description="Manage your Livequest Studio identity, billing, and sign-in settings from one place."
         actions={
           <>
             <Button asChild variant="outline" size="sm" className="border-border/70">
@@ -113,8 +112,8 @@ export default async function AccountPage({
             </Button>
             <Button asChild size="sm" className="bg-primary/80 text-primary-foreground">
               <Link href="/account/analytics">
-                Open analytics
-                <BarChart3 className="ml-2 h-4 w-4" />
+                View analytics
+                <ArrowUpRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <form action={signOutAction}>
@@ -137,8 +136,6 @@ export default async function AccountPage({
       <AccountSectionTabs />
 
       <SubscriptionPlanShell features={features} monthlyUsage={liveblogsThisMonth || 0} />
-
-      <AccountInsightsShell />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Card className="border-border/70 bg-background/50">
