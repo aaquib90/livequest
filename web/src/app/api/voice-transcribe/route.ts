@@ -43,13 +43,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "audio_too_large" }, { status: 413 });
     }
 
-    const audioBlob = new Blob([audioBuffer], { type: contentType });
-
-    const openAiForm = new FormData();
-    openAiForm.append("file", audioBlob, "voice.webm");
-    openAiForm.append("model", MODEL_ID);
-    openAiForm.append("response_format", "verbose_json");
-    openAiForm.append("temperature", "0");
+    const audioBytes = new Uint8Array(audioBuffer);
+    const boundary = `----livequest-${Math.random().toString(16).slice(2)}`;
+    const encoder = new TextEncoder();
+    const bodyParts: Uint8Array[] = [
+      encoder.encode(`--${boundary}\r\n`),
+      encoder.encode(
+        'Content-Disposition: form-data; name="model"\r\n\r\n'
+      ),
+      encoder.encode(`${MODEL_ID}\r\n`),
+      encoder.encode(`--${boundary}\r\n`),
+      encoder.encode(
+        'Content-Disposition: form-data; name="response_format"\r\n\r\n'
+      ),
+      encoder.encode("verbose_json\r\n"),
+      encoder.encode(`--${boundary}\r\n`),
+      encoder.encode(
+        'Content-Disposition: form-data; name="temperature"\r\n\r\n'
+      ),
+      encoder.encode("0\r\n"),
+      encoder.encode(`--${boundary}\r\n`),
+      encoder.encode(
+        `Content-Disposition: form-data; name="file"; filename="voice.webm"\r\n`
+      ),
+      encoder.encode(`Content-Type: ${contentType}\r\n\r\n`),
+      audioBytes,
+      encoder.encode(`\r\n--${boundary}--\r\n`),
+    ];
+    const requestBody = concatUint8Arrays(bodyParts);
 
     const response = await fetch(
       "https://api.openai.com/v1/audio/transcriptions",
@@ -57,8 +78,9 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": `multipart/form-data; boundary=${boundary}`,
         },
-        body: openAiForm,
+        body: requestBody,
       }
     );
 
@@ -120,4 +142,18 @@ function extractSupabaseAccessToken(req: NextRequest): string | null {
   } catch {
     return null;
   }
+}
+
+function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+  let total = 0;
+  for (const arr of arrays) {
+    total += arr.length;
+  }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
 }
