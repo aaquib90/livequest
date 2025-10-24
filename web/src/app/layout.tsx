@@ -67,8 +67,15 @@ export const metadata: Metadata = {
     ],
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [
+      {
+        url: "https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(500%20x%20500%20px).svg",
+        type: "image/svg+xml",
+      },
+    ],
+    shortcut: [
+      "https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(500%20x%20500%20px).svg",
+    ],
   },
 };
 
