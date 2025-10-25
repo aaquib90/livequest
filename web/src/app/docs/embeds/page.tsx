@@ -47,6 +47,15 @@ export default function EmbedsDocsPage() {
       </section>
 
       <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-foreground">Standalone widgets</h2>
+        <p className="text-sm text-muted-foreground">Embed a Hot Take Meter anywhere with one line:</p>
+        <pre className="overflow-x-auto rounded-xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
+{`<div data-widget-id="WIDGET_ID" data-type="hot-take"></div>
+<script src="https://your-domain/widget.js" async></script>`}
+        </pre>
+      </section>
+
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-foreground">2. API endpoints in play</h2>
         <div className="grid gap-3">
           {endpoints.map((endpoint) => (

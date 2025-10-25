@@ -104,7 +104,7 @@ export default function RootLayout({
             <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_top,_rgba(161,161,170,0.08),_transparent_50%),radial-gradient(circle_at_bottom,_rgba(113,113,122,0.07),_transparent_50%)] dark:block" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(14,165,233,0.12),_transparent_55%)] dark:hidden" />
           </div>
-          <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-12 sm:px-6 lg:px-10">
+          <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-4 pb-12 sm:px-8 lg:px-16 2xl:px-24">
             <Chrome>{children}</Chrome>
           </div>
         </ThemeProvider>

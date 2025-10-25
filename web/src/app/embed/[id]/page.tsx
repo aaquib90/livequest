@@ -8,7 +8,12 @@ import { Sparkle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AccountBranding } from "@/lib/branding/types";
-import { CORNER_CLASS_MAP, SURFACE_CLASS_MAP, accentOverlay } from "@/lib/branding/presentation";
+import {
+  CORNER_CLASS_MAP,
+  accentOverlay,
+  composeBackgroundStyles,
+  resolveSurfaceVisual,
+} from "@/lib/branding/presentation";
 import { normaliseBranding, resolveAccentColor } from "@/lib/branding/utils";
 import { cn } from "@/lib/utils";
 
@@ -64,23 +69,24 @@ export default async function EmbedPage({
   const cornerClass = branding?.corner_style
     ? CORNER_CLASS_MAP[branding.corner_style] ?? CORNER_CLASS_MAP.rounded
     : "rounded-3xl";
-  const surfaceClass = branding?.surface_style
-    ? SURFACE_CLASS_MAP[branding.surface_style] ?? SURFACE_CLASS_MAP.glass
-    : "border border-border/70 bg-background/60 backdrop-blur";
+  const surfaceVisual = resolveSurfaceVisual(branding?.surface_style ?? "glass", accentColor ?? undefined);
+  const surfaceClass = surfaceVisual.className;
   const { logoUrl, backgroundUrl } = brandingAssets;
 
   const { homeTeamName, awayTeamName, homeTeamSlug, awayTeamSlug } = match || {};
 
+  const cardLayers = [...surfaceVisual.layers];
+  if (backgroundUrl) {
+    cardLayers.push(
+      "linear-gradient(180deg, rgba(12,13,17,0.82), rgba(12,13,18,0.94))",
+      `url(${backgroundUrl})`
+    );
+  }
+
   const cardStyle = {
     ...(accentSoft ? { borderColor: accentSoft } : {}),
-    ...(backgroundUrl
-      ? {
-          backgroundImage: `linear-gradient(180deg, rgba(12,13,17,0.82), rgba(12,13,18,0.94)), url(${backgroundUrl})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }
-      : {}),
+    ...(surfaceVisual.style ?? {}),
+    ...(cardLayers.length ? composeBackgroundStyles(cardLayers, { coverLast: Boolean(backgroundUrl) }) : {}),
   } as CSSProperties;
 
   return (

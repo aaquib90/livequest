@@ -7,6 +7,7 @@ export type AccountBranding = {
   watermark: string | null;
   logo_path: string | null;
   background_path: string | null;
+  reactions: ReactionConfig[];
   options: Record<string, unknown>;
   updated_by: string | null;
   created_at: string;
@@ -17,4 +18,15 @@ export type PalettePresetKey = "violet" | "teal" | "amber" | "rose";
 
 export type CornerStyle = "rounded" | "pill" | "square";
 
-export type SurfaceStyle = "glass" | "solid" | "contrast";
+export type SurfaceStyle = "glass" | "solid" | "contrast" | "liquid";
+
+export type ReactionKind = "emoji" | "image";
+
+export type ReactionConfig = {
+  id: string;
+  type: ReactionKind;
+  label: string;
+  emoji?: string;
+  image_path?: string | null;
+  alt?: string | null;
+};

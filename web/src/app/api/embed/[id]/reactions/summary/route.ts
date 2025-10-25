@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
-import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from '@/lib/embed/cors';
-import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
+import { NextResponse } from "next/server";
+
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from "@/lib/embed/cors";
+import { supabaseEnsure } from "@/lib/supabase/gatewayClient";
 
 export const runtime = 'edge';
 
@@ -13,8 +14,6 @@ export async function OPTIONS(req: Request) {
     }),
   });
 }
-
-type ReactionType = 'smile' | 'heart' | 'thumbs_up';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const baseCors = embedResponseCorsHeaders(req);
@@ -67,7 +66,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
     // Counts per update and reaction
     const countsRows = await supabaseEnsure<
-      Array<{ update_id: string; reaction: ReactionType; count: number | null }>
+      Array<{ update_id: string; reaction: string; count: number | null }>
     >(req, {
       action: 'select',
       table: 'update_reactions',
@@ -76,24 +75,25 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       group: 'update_id, reaction',
     });
 
-    const counts: Record<string, Record<ReactionType, number>> = {};
+    const counts: Record<string, Record<string, number>> = {};
     for (const id of filteredIds) {
-      counts[id] = { smile: 0, heart: 0, thumbs_up: 0 };
+      counts[id] = {};
     }
     for (const row of countsRows || []) {
       const { update_id: updateId, reaction, count } = row;
+      if (!reaction || !counts[updateId]) continue;
       counts[updateId][reaction] = Number(count ?? 0);
     }
 
     // Active map per update for this device
     const userAgent = (req.headers.get('user-agent') || '').slice(0, 512);
     const device_hash = deviceId ? await sha256(deviceId + '|' + userAgent) : '';
-    const active: Record<string, Record<ReactionType, boolean>> = {};
+    const active: Record<string, Record<string, boolean>> = {};
     for (const id of filteredIds) {
-      active[id] = { smile: false, heart: false, thumbs_up: false };
+      active[id] = {};
     }
     if (device_hash) {
-      const activeRows = await supabaseEnsure<Array<{ update_id: string; reaction: ReactionType }>>(req, {
+      const activeRows = await supabaseEnsure<Array<{ update_id: string; reaction: string }>>(req, {
         action: 'select',
         table: 'update_reactions',
         columns: 'update_id, reaction',
@@ -103,6 +103,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         ],
       });
       for (const row of activeRows || []) {
+        if (!row.reaction || !active[row.update_id]) continue;
         active[row.update_id][row.reaction] = true;
       }
     }

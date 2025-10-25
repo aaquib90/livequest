@@ -1,9 +1,7 @@
-import type { CSSProperties } from "react";
-
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Lock, Palette, Sparkles } from "lucide-react";
+import { ArrowUpRight, Lock, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,19 +14,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { UpgradeHighlights } from "@/components/ui/upgrade-highlights";
 import type { AccountFeatures } from "@/lib/billing/types";
 import { PALETTE_PRESETS } from "@/lib/branding/constants";
-import { CORNER_CLASS_MAP, SURFACE_CLASS_MAP, accentOverlay } from "@/lib/branding/presentation";
 import { normaliseBranding, resolveAccentColor } from "@/lib/branding/utils";
 import type { AccountBranding, PalettePresetKey } from "@/lib/branding/types";
-import { cn } from "@/lib/utils";
 
 import AccountSectionTabs from "../components/AccountSectionTabs";
 import { AccountHeaderCard } from "../components/AccountHeaderCard";
 import BrandAssetUploader from "./components/BrandAssetUploader";
-import { updateBrandAssets, updateBrandingTheme } from "./actions";
+import { ReactionConfigurator } from "./components/ReactionConfigurator";
+import { ThemeConfigurator } from "./components/ThemeConfigurator";
+import { updateBrandAssets } from "./actions";
 
 export const runtime = "edge";
 
@@ -50,12 +47,16 @@ type AccountCustomizationResponse = {
 const statusMessages: Record<string, string> = {
   "theme-saved": "Theme preferences updated successfully.",
   "brand-saved": "Brand assets saved. These settings now flow through embeds and dashboards.",
+  "reactions-saved": "Reactions updated. New emoji and emotes will appear on embeds instantly.",
 };
 
 const errorMessages: Record<string, string> = {
   "theme-save": "We couldn't update your theme just yet. Please try again.",
   "brand-save": "Brand assets weren't saved. Double-check the paths and retry.",
   "premium-required": "Upgrade to a paid plan to unlock logos, backgrounds, and watermarks.",
+  "reactions-save": "We couldn't update your reactions just yet. Please try again.",
+  "reactions-invalid": "Those reactions didn't look quite right. Keep labels short, pick emoji, or upload an image.",
+  "reactions-nsfw": "One of the emotes tripped our safety checks. Please swap it for something SFW.",
 };
 
 export default async function AccountCustomizationPage({
@@ -91,9 +92,8 @@ export default async function AccountCustomizationPage({
 
   const resolvedBranding = normaliseBranding(brandingPayload ?? undefined);
   const branding = resolvedBranding.account_id ? resolvedBranding : { ...resolvedBranding, account_id: user.id };
-
   const accentColor = resolveAccentColor(branding);
-  const accentSoft = accentOverlay(accentColor, 0.15);
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
   const buildPublicUrl = (path: string | null | undefined) => {
     if (!supabaseUrl || !path) return null;
@@ -106,28 +106,6 @@ export default async function AccountCustomizationPage({
   };
   const logoUrl = buildPublicUrl(branding.logo_path);
   const backgroundUrl = buildPublicUrl(branding.background_path);
-  const selectedPreset = (branding.palette_preset in PALETTE_PRESETS
-    ? branding.palette_preset
-    : "violet") as PalettePresetKey;
-  const selectedPresetName = PALETTE_PRESETS[selectedPreset]?.name ?? PALETTE_PRESETS.violet.name;
-
-  const previewCardClass = cn(
-    "relative overflow-hidden p-6 pb-16 shadow-lg shadow-black/10 transition-all duration-300",
-    CORNER_CLASS_MAP[branding.corner_style] ?? CORNER_CLASS_MAP.rounded,
-    SURFACE_CLASS_MAP[branding.surface_style] ?? SURFACE_CLASS_MAP.glass
-  );
-  const previewCardStyle: CSSProperties = {
-    borderColor: accentSoft,
-    ...(backgroundUrl
-      ? {
-          backgroundImage: `linear-gradient(180deg, rgba(14,15,17,0.76), rgba(13,14,16,0.9)), url(${backgroundUrl})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }
-      : {}),
-  };
-
   const fullName =
     typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   const displayName = fullName || user.email?.split("@")[0] || "Account";
@@ -157,132 +135,18 @@ export default async function AccountCustomizationPage({
         errorMessage={errorMessage}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <Badge variant="outline" className="mb-4 w-fit">
-              Theme
-            </Badge>
-            <CardTitle className="text-2xl">Base palette</CardTitle>
-            <CardDescription className="text-base">
-              Choose your global accent, card silhouette, and surface finish. Changes apply to embeds immediately.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={updateBrandingTheme} className="space-y-5" aria-label="Base theme settings">
-              <div className="space-y-2">
-                <Label htmlFor="palettePreset">Accent preset</Label>
-                <Select id="palettePreset" name="palettePreset" defaultValue={branding.palette_preset}>
-                  {paletteOptions.map(([value, preset]) => (
-                    <option key={value} value={value}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Pick a palette to auto-fill accent colors across cards, headlines, and buttons.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cornerStyle">Card silhouette</Label>
-                <Select id="cornerStyle" name="cornerStyle" defaultValue={branding.corner_style}>
-                  <option value="rounded">Rounded corners</option>
-                  <option value="pill">Pill shaped</option>
-                  <option value="square">Squared corners</option>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Apply the same outline across liveblog embeds, dashboards, and newsletter cards.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="surfaceStyle">Surface finish</Label>
-                <Select id="surfaceStyle" name="surfaceStyle" defaultValue={branding.surface_style}>
-                  <option value="glass">Glassmorphism</option>
-                  <option value="solid">Solid fill</option>
-                  <option value="contrast">High contrast</option>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="accentColor">Custom accent (optional)</Label>
-                <Input
-                  id="accentColor"
-                  name="accentColor"
-                  type="text"
-                  inputMode="text"
-                  placeholder={accentColor}
-                  defaultValue={branding.accent_color ?? ""}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Provide a hex value (e.g. #0EA5E9) to override the {selectedPresetName} preset. Leave blank to stick with the preset accent.
-                </p>
-              </div>
-              <Button type="submit" size="sm" className="w-fit">
-                Save theme
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+      <ThemeConfigurator
+        branding={branding}
+        paletteOptions={paletteOptions}
+        logoUrl={logoUrl}
+        backgroundUrl={backgroundUrl}
+      />
 
-        <Card className="border-border/70 bg-background/50">
-          <CardHeader>
-            <Badge variant="outline" className="mb-4 w-fit">
-              Preview
-            </Badge>
-            <CardTitle className="text-2xl">Liveblog preview</CardTitle>
-            <CardDescription className="text-base">
-              A quick look at how your accent color, surface finish, and corners update the embed card.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className={previewCardClass} style={previewCardStyle}>
-              {logoUrl ? (
-                <div className="absolute right-4 top-4 flex h-12 items-center justify-center overflow-hidden rounded-xl border border-border/40 bg-background/70 px-3 py-2 shadow-sm backdrop-blur">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={logoUrl} alt="Preview logo" className="max-h-8 w-auto" loading="lazy" />
-                </div>
-              ) : null}
-              <div
-                className="text-xs font-semibold uppercase tracking-[0.22em]"
-                style={{ color: accentColor }}
-              >
-                Featured update
-              </div>
-              <h3 className="mt-3 text-lg font-semibold text-foreground">Halftime reactions rolling in</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Buttons, badges, and scorelines will inherit your accent color so the experience stays on brand everywhere.
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground/80">
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 font-medium"
-                  style={{ backgroundColor: accentSoft, color: accentColor }}
-                >
-                  <Palette className="h-3.5 w-3.5" />
-                  Accent preview
-                </span>
-                <span
-                  className="inline-flex items-center gap-1 rounded-full bg-background/80 px-3 py-1 font-medium"
-                  style={{ color: accentColor }}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Spotlight title
-                </span>
-              </div>
-              {branding.watermark ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-end px-4">
-                  <span className="rounded-full bg-black/40 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.38em] text-white/70 backdrop-blur">
-                    {branding.watermark}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-            <div className="rounded-2xl border border-dashed border-border/60 bg-background/60 p-4">
-              <p className="text-sm text-muted-foreground">
-                Coming soon: preview any liveblog, toggle between dark/light, and test device breakpoints without leaving this page.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ReactionConfigurator
+        accountId={branding.account_id}
+        accentColor={accentColor}
+        initialReactions={branding.reactions}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Card className="border-border/70 bg-background/50">

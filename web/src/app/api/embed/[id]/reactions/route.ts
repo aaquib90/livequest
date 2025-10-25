@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server';
-import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from '@/lib/embed/cors';
-import { supabaseEnsure } from '@/lib/supabase/gatewayClient';
+import { NextResponse } from "next/server";
+
+import { embedPreflightCorsHeaders, embedResponseCorsHeaders } from "@/lib/embed/cors";
+import { normaliseReactions } from "@/lib/branding/utils";
+import { supabaseEnsure } from "@/lib/supabase/gatewayClient";
 
 export const runtime = 'edge';
 
@@ -13,8 +15,6 @@ export async function OPTIONS(req: Request) {
     }),
   });
 }
-
-type ReactionType = 'smile' | 'heart' | 'thumbs_up';
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const baseCors = embedResponseCorsHeaders(req);
@@ -31,17 +31,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const body = await req.json().catch(() => ({}));
     const updateId = String(body?.updateId || '');
-    const type: ReactionType = body?.type;
+    const type = String(body?.type || '');
     const deviceId = String(body?.deviceId || '');
-    if (!updateId || !deviceId || !['smile','heart','thumbs_up'].includes(String(type))) {
+    if (!updateId || !deviceId || !type) {
       return NextResponse.json({ error: 'invalid_payload' }, { status: 400, headers: responseHeaders });
     }
 
     // Validate that update belongs to liveblog and liveblog is public/unlisted
-    const lb = await supabaseEnsure<{ id: string; privacy: string; status: string } | null>(req, {
+    const lb = await supabaseEnsure<{ id: string; privacy: string; status: string; owner_id: string } | null>(req, {
       action: 'select',
       table: 'liveblogs',
-      columns: 'id,privacy,status',
+      columns: 'id,privacy,status,owner_id',
       filters: [{ column: 'id', op: 'eq', value: liveblogId }],
       single: true,
     });
@@ -60,6 +60,21 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
     if (!up) {
       return NextResponse.json({ error: 'not_found' }, { status: 404, headers: responseHeaders });
+    }
+
+    const brandingRow = lb.owner_id
+      ? await supabaseEnsure<{ reactions: unknown } | null>(req, {
+          action: 'select',
+          table: 'account_branding',
+          columns: 'reactions',
+          filters: [{ column: 'account_id', op: 'eq', value: lb.owner_id }],
+          maybeSingle: true,
+        })
+      : null;
+    const allowedReactions = normaliseReactions(brandingRow?.reactions);
+    const allowedIds = new Set(allowedReactions.map((reaction) => reaction.id));
+    if (!allowedIds.has(type)) {
+      return NextResponse.json({ error: 'invalid_reaction' }, { status: 400, headers: responseHeaders });
     }
 
     const userAgent = (req.headers.get('user-agent') || '').slice(0, 512);
@@ -117,23 +132,24 @@ async function sha256(input: string) {
 }
 
 async function getCounts(req: Request, updateId: string) {
-  const data = await supabaseEnsure<Array<{ reaction: ReactionType; count: number | null }>>(req, {
+  const data = await supabaseEnsure<Array<{ reaction: string; count: number | null }>>(req, {
     action: 'select',
     table: 'update_reactions',
     columns: 'reaction, count:count(*)',
     filters: [{ column: 'update_id', op: 'eq', value: updateId }],
     group: 'reaction',
   });
-  const base: Record<ReactionType, number> = { smile: 0, heart: 0, thumbs_up: 0 };
+  const base: Record<string, number> = {};
   for (const row of data || []) {
     const { reaction, count } = row;
+    if (!reaction) continue;
     base[reaction] = Number(count ?? 0);
   }
   return base;
 }
 
 async function getActiveMap(req: Request, updateId: string, device_hash: string) {
-  const data = await supabaseEnsure<Array<{ reaction: ReactionType }>>(req, {
+  const data = await supabaseEnsure<Array<{ reaction: string }>>(req, {
     action: 'select',
     table: 'update_reactions',
     columns: 'reaction',
@@ -142,8 +158,9 @@ async function getActiveMap(req: Request, updateId: string, device_hash: string)
       { column: 'device_hash', op: 'eq', value: device_hash },
     ],
   });
-  const map: Record<ReactionType, boolean> = { smile: false, heart: false, thumbs_up: false };
+  const map: Record<string, boolean> = {};
   for (const row of data || []) {
+    if (!row.reaction) continue;
     map[row.reaction] = true;
   }
   return map;

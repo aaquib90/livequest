@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeDollarSign, BarChart3, CalendarClock, PenSquare, Sparkle } from "lucide-react";
+import { ArrowRight, BadgeDollarSign, BarChart3, CalendarClock, PenSquare, Sparkle, Wand2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createAdminClient } from "@/lib/supabase/adminClient";
+import { createClient as createServerSupabase } from "@/lib/supabase/serverClient";
 
 export const revalidate = 1800;
 
@@ -177,7 +178,42 @@ const faqs = [
   },
 ];
 
+const productSuites = [
+  {
+    title: "Liveblog Studio",
+    blurb:
+      "Command a full-featured liveblog workspace with scheduling, sponsor slots, analytics, and instant embeds that stay in lockstep with your coverage.",
+    bullets: [
+      "Compose with autosave, hotkeys, and media drops",
+      "Trigger Discord, push, and sponsor automations",
+      "Track reach, referrers, and sponsor CTR across accounts",
+    ],
+    ctaLabel: "Explore liveblogs",
+    ctaHref: "/dashboard",
+    authenticatedOnly: true,
+    icon: PenSquare,
+  },
+  {
+    title: "Engagement Widgets",
+    blurb:
+      "Spin up Hot Take meters, Caption This prompts, and more—collecting fan sentiment and UGC with built-in moderation and sharing tools.",
+    bullets: [
+      "Launch shareable widgets in seconds",
+      "Collect votes or captions without logins",
+      "Share via clean links or drop-in embed snippets",
+    ],
+    ctaLabel: "Manage engagement",
+    ctaHref: "/dashboard/engagement",
+    authenticatedOnly: true,
+    icon: Sparkle,
+  },
+];
+
 export default async function Home() {
+  const supabaseUser = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabaseUser.auth.getUser();
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://livequest.app").replace(/\/$/, "");
   const logoUrl =
     "https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(500%20x%20500%20px).svg";
@@ -293,6 +329,57 @@ export default async function Home() {
               </div>
             </div>
           ) : null}
+        </div>
+      </section>
+
+      <section id="products" className="space-y-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Badge variant="outline" className="mb-4">
+              Suites
+            </Badge>
+            <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Two products. One newsroom-grade toolkit.
+            </h2>
+          </div>
+          <p className="max-w-xl text-base text-muted-foreground">
+            Publish the play-by-play with Liveblog Studio, then fire up interactive widgets to capture sentiment and UGC—all inside the same workspace.
+          </p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {productSuites.map((suite) => {
+            const destination = suite.authenticatedOnly && !user
+              ? `/signin?redirect=${encodeURIComponent(suite.ctaHref)}`
+              : suite.ctaHref;
+            return (
+            <Card key={suite.title} className="flex h-full flex-col justify-between border-border/70 bg-background/60">
+              <CardHeader className="flex flex-col gap-4">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/40 text-secondary-foreground shadow-[0_14px_30px_-20px_rgba(161,161,170,0.9)]">
+                  <suite.icon className="h-5 w-5" />
+                </span>
+                <div className="space-y-3">
+                  <CardTitle className="text-2xl">{suite.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed text-muted-foreground/90">
+                    {suite.blurb}
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  {suite.bullets.map((bullet) => (
+                    <li key={bullet} className="flex items-start gap-2">
+                      <Wand2 className="mt-0.5 h-4 w-4 text-secondary" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild className="w-full">
+                  <Link href={destination}>{suite.ctaLabel}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+            );
+          })}
         </div>
       </section>
 

@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent } from "react";
 import Link from "next/link";
-import { CircleUserRound, Radio, Trophy } from "lucide-react";
+import { CircleUserRound, Radio, Trophy, Sparkle, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/browserClient";
@@ -9,8 +9,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isEmbed = pathname?.startsWith("/embed");
+  const isMinimal = pathname?.startsWith("/embed") || pathname?.startsWith("/widgets");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [productsOpen, setProductsOpen] = useState(false);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
     };
   }, [supabase]);
 
-  if (isEmbed) {
+  if (isMinimal) {
     return <main className="flex-1 py-0">{children}</main>;
   }
 
@@ -47,18 +49,84 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
           <Link href="/" className="group flex items-center">
             <span className="relative inline-flex">
               <img
-                src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(1).svg"
-                alt="Livequest Studio"
-                className="hidden h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] dark:block sm:h-11"
-              />
-              <img
                 src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Copy%20of%20Livequest.svg"
                 alt="Livequest Studio"
                 className="block h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] dark:hidden sm:h-11"
               />
+              <img
+                src="https://yjcoinrerbshwmkmlytx.supabase.co/storage/v1/object/public/media/Logo/Livequest%20(1).svg"
+                alt="Livequest Studio"
+                className="hidden h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] dark:block sm:h-11"
+              />
             </span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                if (closeTimeoutRef.current) {
+                  clearTimeout(closeTimeoutRef.current);
+                  closeTimeoutRef.current = null;
+                }
+                setProductsOpen(true);
+              }}
+              onMouseLeave={(event: MouseEvent<HTMLDivElement>) => {
+                const currentTarget = event.currentTarget;
+                closeTimeoutRef.current = setTimeout(() => {
+                  if (!currentTarget.contains(document.activeElement)) {
+                    setProductsOpen(false);
+                  }
+                }, 200);
+              }}
+              onFocus={() => {
+                if (closeTimeoutRef.current) {
+                  clearTimeout(closeTimeoutRef.current);
+                  closeTimeoutRef.current = null;
+                }
+                setProductsOpen(true);
+              }}
+              onBlur={(event: FocusEvent<HTMLDivElement>) => {
+                if (closeTimeoutRef.current) {
+                  clearTimeout(closeTimeoutRef.current);
+                  closeTimeoutRef.current = null;
+                }
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  closeTimeoutRef.current = setTimeout(() => {
+                    setProductsOpen(false);
+                  }, 200);
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 transition-colors hover:text-foreground focus:outline-none"
+                aria-haspopup="true"
+                aria-expanded={productsOpen}
+              >
+                Products
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              <div
+                className={`absolute left-0 top-full z-50 mt-3 min-w-[220px] rounded-2xl border border-border/60 bg-background/95 p-3 text-sm text-muted-foreground shadow-[0_18px_40px_-24px_rgba(10,10,15,0.75)] backdrop-blur-lg transition-all duration-150 ${
+                  productsOpen ? "block opacity-100" : "hidden opacity-0"
+                }`}
+              >
+                <div className="flex flex-col gap-1">
+                  <Link
+                    href="/liveblog"
+                    className="rounded-xl px-3 py-2 transition-colors hover:bg-background/80 hover:text-foreground"
+                  >
+                    Liveblog Studio
+                  </Link>
+                  <Link
+                    href="/engagement"
+                    className="rounded-xl px-3 py-2 transition-colors hover:bg-background/80 hover:text-foreground"
+                  >
+                    Engagement Widgets
+                  </Link>
+                </div>
+              </div>
+            </div>
             <Link href="/#features" className="transition-colors hover:text-foreground">
               Features
             </Link>
@@ -77,6 +145,13 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
             >
               <Trophy className="h-3.5 w-3.5 text-zinc-400" />
               Matches
+            </Link>
+            <Link
+              href="/dashboard/engagement"
+              className="inline-flex items-center gap-2 transition-colors hover:text-foreground"
+            >
+              <Sparkle className="h-3.5 w-3.5 text-zinc-400" />
+              Engagement
             </Link>
           </nav>
           <div className="flex items-center gap-2">

@@ -5,12 +5,27 @@ import { redirect } from "next/navigation";
 import { fetchAccountFeaturesForUser } from "@/lib/billing/server";
 import { DEFAULT_BRANDING, DEFAULT_PALETTE } from "@/lib/branding/constants";
 import { fetchAccountBrandingForUser } from "@/lib/branding/server";
-import { normaliseBranding } from "@/lib/branding/utils";
+import { normaliseBranding, normaliseReactions } from "@/lib/branding/utils";
 import { createClient } from "@/lib/supabase/serverClient";
 
 const ALLOWED_PALETTES = new Set(["violet", "teal", "amber", "rose"]);
 const ALLOWED_CORNERS = new Set(["rounded", "pill", "square"]);
-const ALLOWED_SURFACES = new Set(["glass", "solid", "contrast"]);
+const ALLOWED_SURFACES = new Set(["glass", "solid", "contrast", "liquid"]);
+const NSFW_TERMS = [
+  "nsfw",
+  "nude",
+  "porn",
+  "xxx",
+  "sex",
+  "boob",
+  "butt",
+  "ass",
+  "cock",
+  "dick",
+  "pussy",
+  "cum",
+];
+const ALLOWED_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
 
 function sanitiseHexColor(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -62,6 +77,7 @@ export async function updateBrandingTheme(formData: FormData) {
       watermark: existing.watermark,
       logo_path: existing.logo_path,
       background_path: existing.background_path,
+      reactions: existing.reactions ?? [],
       options: existing.options ?? {},
     })
     .select("account_id")
@@ -106,6 +122,7 @@ export async function updateBrandAssets(formData: FormData) {
       watermark,
       logo_path: logoPath,
       background_path: backgroundPath,
+      reactions: existing.reactions ?? [],
       options: existing.options ?? {},
     })
     .select("account_id")
@@ -116,4 +133,91 @@ export async function updateBrandAssets(formData: FormData) {
   }
 
   return redirect("/account/customization?status=brand-saved");
+}
+
+type ReactionPayload = {
+  id?: string | null;
+  type?: string | null;
+  label?: string | null;
+  emoji?: string | null;
+  image_path?: string | null;
+  alt?: string | null;
+};
+
+export async function updateBrandReactions(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return redirect("/signin");
+  }
+
+  const rawPayload = String(formData.get("reactionsPayload") || "[]");
+  let parsed: ReactionPayload[] = [];
+  try {
+    const json = JSON.parse(rawPayload);
+    if (Array.isArray(json)) {
+      parsed = json as ReactionPayload[];
+    }
+  } catch {
+    return redirect("/account/customization?error=reactions-invalid");
+  }
+
+  const existingRaw = await fetchAccountBrandingForUser(supabase).catch(() => null);
+  const existing = normaliseBranding(existingRaw ?? { ...DEFAULT_BRANDING, account_id: user.id });
+
+  const reactions = normaliseReactions(parsed);
+
+  if (!reactions.length) {
+    return redirect("/account/customization?error=reactions-invalid");
+  }
+
+  for (const reaction of reactions) {
+    const label = reaction.label.toLowerCase();
+    if (NSFW_TERMS.some((term) => label.includes(term))) {
+      return redirect("/account/customization?error=reactions-nsfw");
+    }
+    if (reaction.type === "image") {
+      const path = reaction.image_path?.trim() ?? "";
+      if (!path || !path.startsWith(`${user.id}/`)) {
+        return redirect("/account/customization?error=reactions-invalid");
+      }
+      const extension = path.split(".").pop()?.toLowerCase() ?? "";
+      if (!ALLOWED_IMAGE_EXTENSIONS.has(extension)) {
+        return redirect("/account/customization?error=reactions-invalid");
+      }
+      const loweredPath = path.toLowerCase();
+      if (NSFW_TERMS.some((term) => loweredPath.includes(term))) {
+        return redirect("/account/customization?error=reactions-nsfw");
+      }
+      const alt = reaction.alt?.toLowerCase() ?? "";
+      if (alt && NSFW_TERMS.some((term) => alt.includes(term))) {
+        return redirect("/account/customization?error=reactions-nsfw");
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("account_branding")
+    .upsert({
+      account_id: user.id,
+      palette_preset: existing.palette_preset,
+      accent_color: existing.accent_color,
+      corner_style: existing.corner_style,
+      surface_style: existing.surface_style,
+      watermark: existing.watermark,
+      logo_path: existing.logo_path,
+      background_path: existing.background_path,
+      reactions,
+      options: existing.options ?? {},
+    })
+    .select("account_id")
+    .single();
+
+  if (error) {
+    return redirect("/account/customization?error=reactions-save");
+  }
+
+  return redirect("/account/customization?status=reactions-saved");
 }

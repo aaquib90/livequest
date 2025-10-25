@@ -1,4 +1,4 @@
-import type { AccountBranding, CornerStyle, PalettePresetKey, SurfaceStyle } from "./types";
+import type { AccountBranding, CornerStyle, PalettePresetKey, ReactionConfig, SurfaceStyle } from "./types";
 
 export const PALETTE_PRESETS: Record<PalettePresetKey, { accent: string; name: string }> = {
   violet: { accent: "#8B5CF6", name: "Electric violet" },
@@ -11,6 +11,12 @@ export const DEFAULT_PALETTE: PalettePresetKey = "violet";
 export const DEFAULT_CORNER_STYLE: CornerStyle = "rounded";
 export const DEFAULT_SURFACE_STYLE: SurfaceStyle = "glass";
 
+export const DEFAULT_REACTIONS: ReactionConfig[] = [
+  { id: "smile", type: "emoji", label: "Smile", emoji: "😊" },
+  { id: "heart", type: "emoji", label: "Heart", emoji: "❤️" },
+  { id: "thumbs_up", type: "emoji", label: "Thumbs up", emoji: "👍" },
+];
+
 export const DEFAULT_BRANDING: AccountBranding = {
   account_id: "",
   palette_preset: DEFAULT_PALETTE,
@@ -20,6 +26,7 @@ export const DEFAULT_BRANDING: AccountBranding = {
   watermark: null,
   logo_path: null,
   background_path: null,
+  reactions: DEFAULT_REACTIONS,
   options: {},
   updated_by: null,
   created_at: new Date(0).toISOString(),

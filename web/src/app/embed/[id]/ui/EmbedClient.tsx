@@ -3,18 +3,30 @@ import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Bell, BellOff } from "lucide-react";
 
-import {
-  FootballEventBadge,
-  FootballEventBanner,
-} from "@/components/football/FootballEventBadge";
+import { FootballEventBadge, FootballEventBanner } from "@/components/football/FootballEventBadge";
 import { FootballEventDetails } from "@/components/football/FootballEventDetails";
-import { CORNER_CLASS_MAP, accentOverlay } from "@/lib/branding/presentation";
+import {
+  CORNER_CLASS_MAP,
+  accentOverlay,
+  composeBackgroundStyles,
+  resolveSurfaceVisual,
+} from "@/lib/branding/presentation";
+import { resolveBrandAssetUrl } from "@/lib/branding/assets";
 import type { AccountBranding } from "@/lib/branding/types";
 import { normaliseBranding, resolveAccentColor } from "@/lib/branding/utils";
 import type { FootballEventKey } from "@/lib/football/events";
 import { createClient } from "@/lib/supabase/browserClient";
 import { cn } from "@/lib/utils";
-type ReactionType = "smile" | "heart" | "thumbs_up";
+
+type ReactionOption = {
+  id: string;
+  type: "emoji" | "image";
+  label: string;
+  emoji?: string;
+  imagePath?: string | null;
+  alt?: string | null;
+  imageUrl?: string | null;
+};
 
 type TextContent = {
   type: "text";
@@ -103,12 +115,24 @@ export default function EmbedClient({
   const [deviceId, setDeviceId] = useState<string>("");
   const [sessionId, setSessionId] = useState<string>("");
   const [analyticsMode, setAnalyticsMode] = useState<"pending" | "iframe" | "page">("pending");
-  const [reactionCounts, setReactionCounts] = useState<Record<string, { smile: number; heart: number; thumbs_up: number }>>({});
-  const [reactionActive, setReactionActive] = useState<Record<string, { smile: boolean; heart: boolean; thumbs_up: boolean }>>({});
+  const [reactionCounts, setReactionCounts] = useState<Record<string, Record<string, number>>>({});
+  const [reactionActive, setReactionActive] = useState<Record<string, Record<string, boolean>>>({});
   const [sponsors, setSponsors] = useState<SponsorSlot[]>([]);
   const sponsorImpressionsRef = useRef<Set<string>>(new Set());
 
   const brandingConfig = useMemo(() => normaliseBranding(branding ?? undefined), [branding]);
+  const reactionOptions = useMemo<ReactionOption[]>(() => {
+    const source = Array.isArray(brandingConfig.reactions) ? brandingConfig.reactions.slice(0, 4) : [];
+    return source.map((reaction) => ({
+      id: reaction.id,
+      type: reaction.type,
+      label: reaction.label,
+      emoji: reaction.type === "emoji" ? reaction.emoji || "😀" : undefined,
+      imagePath: reaction.type === "image" ? reaction.image_path ?? null : null,
+      alt: reaction.type === "image" ? reaction.alt ?? null : null,
+      imageUrl: reaction.type === "image" ? resolveBrandAssetUrl(reaction.image_path ?? null) : null,
+    }));
+  }, [brandingConfig.reactions]);
   const accentColor = useMemo(() => resolveAccentColor(brandingConfig), [brandingConfig]);
   const accentSoft = useMemo(() => accentOverlay(accentColor, 0.18), [accentColor]);
   const accentButtonBg = useMemo(() => accentOverlay(accentColor, 0.12), [accentColor]);
@@ -120,16 +144,16 @@ export default function EmbedClient({
     () => CORNER_CLASS_MAP[brandingConfig.corner_style] ?? CORNER_CLASS_MAP.rounded,
     [brandingConfig.corner_style]
   );
-  const updateSurfaceClass = useMemo(() => {
-    switch (brandingConfig.surface_style) {
-      case "solid":
-        return "border border-border/60 bg-background/90";
-      case "contrast":
-        return "border border-border/40 bg-background/95";
-      default:
-        return "border border-border/60 bg-background/80";
-    }
-  }, [brandingConfig.surface_style]);
+  const updateSurfaceVisual = useMemo(
+    () => resolveSurfaceVisual(brandingConfig.surface_style, accentColor),
+    [brandingConfig.surface_style, accentColor]
+  );
+  const updateSurfaceClass = updateSurfaceVisual.className;
+  const updateSurfaceStyle = useMemo(() => {
+    const baseStyle = updateSurfaceVisual.style ?? {};
+    const backgroundStyle = composeBackgroundStyles(updateSurfaceVisual.layers, { coverLast: false });
+    return { ...baseStyle, ...backgroundStyle };
+  }, [updateSurfaceVisual]);
   const rootStyle = useMemo<CSSProperties>(() => {
     const style: CSSProperties = {
       "--lb-accent": accentColor,
@@ -143,6 +167,45 @@ export default function EmbedClient({
     }
     return style;
   }, [accentColor, accentSoft, brandingAssets?.backgroundUrl]);
+
+  const ensureCountMap = useCallback(
+    (map?: Record<string, number>) => {
+      const base: Record<string, number> = {};
+      reactionOptions.forEach((reaction) => {
+        base[reaction.id] = map?.[reaction.id] ?? 0;
+      });
+      return base;
+    },
+    [reactionOptions]
+  );
+
+  const ensureActiveMap = useCallback(
+    (map?: Record<string, boolean>) => {
+      const base: Record<string, boolean> = {};
+      reactionOptions.forEach((reaction) => {
+        base[reaction.id] = map?.[reaction.id] ?? false;
+      });
+      return base;
+    },
+    [reactionOptions]
+  );
+
+  useEffect(() => {
+    setReactionCounts((prev) => {
+      const next: Record<string, Record<string, number>> = {};
+      for (const [updateId, map] of Object.entries(prev)) {
+        next[updateId] = ensureCountMap(map);
+      }
+      return next;
+    });
+    setReactionActive((prev) => {
+      const next: Record<string, Record<string, boolean>> = {};
+      for (const [updateId, map] of Object.entries(prev)) {
+        next[updateId] = ensureActiveMap(map);
+      }
+      return next;
+    });
+  }, [ensureCountMap, ensureActiveMap]);
 
   useEffect(() => {
     // Ensure a stable per-device id (scoped to origin)
@@ -440,11 +503,27 @@ export default function EmbedClient({
     fetch(`/api/embed/${liveblogId}/reactions/summary?updateIds=${encodeURIComponent(ids)}&deviceId=${encodeURIComponent(deviceId)}`)
       .then((r) => r.json())
       .then((res) => {
-        if (res && res.counts) setReactionCounts(res.counts);
-        if (res && res.active) setReactionActive(res.active);
+        if (res && res.counts) {
+          setReactionCounts((prev) => {
+            const next: Record<string, Record<string, number>> = { ...prev };
+            Object.entries(res.counts as Record<string, Record<string, number>>).forEach(([updateId, map]) => {
+              next[updateId] = ensureCountMap(map);
+            });
+            return next;
+          });
+        }
+        if (res && res.active) {
+          setReactionActive((prev) => {
+            const next: Record<string, Record<string, boolean>> = { ...prev };
+            Object.entries(res.active as Record<string, Record<string, boolean>>).forEach(([updateId, map]) => {
+              next[updateId] = ensureActiveMap(map);
+            });
+            return next;
+          });
+        }
       })
       .catch(() => {});
-  }, [deviceId, updates, liveblogId]);
+  }, [deviceId, updates, liveblogId, ensureCountMap, ensureActiveMap]);
 
   // Realtime subscription for reactions
   useEffect(() => {
@@ -457,13 +536,17 @@ export default function EmbedClient({
           const type = payload.eventType;
           if (type !== "INSERT" && type !== "DELETE") return;
           const row: any = type === "INSERT" ? payload.new : payload.old;
-          const updateId = row?.update_id as string | undefined;
-          const reaction = row?.reaction as ReactionType | undefined;
-          if (!updateId || !reaction) return;
+          const updateId = typeof row?.update_id === "string" ? row.update_id : undefined;
+          const reactionId = typeof row?.reaction === "string" ? row.reaction : "";
+          if (!updateId || !reactionId) return;
+          if (!reactionOptions.some((reaction) => reaction.id === reactionId)) return;
           const delta = type === "INSERT" ? 1 : -1;
           setReactionCounts((prev) => {
-            const prevCounts = prev[updateId] || { smile: 0, heart: 0, thumbs_up: 0 };
-            const next = { ...prevCounts, [reaction]: Math.max(0, (prevCounts as any)[reaction] + delta) } as typeof prevCounts;
+            const current = ensureCountMap(prev[updateId]);
+            const next = {
+              ...current,
+              [reactionId]: Math.max(0, (current[reactionId] ?? 0) + delta),
+            };
             return { ...prev, [updateId]: next };
           });
         }
@@ -472,7 +555,7 @@ export default function EmbedClient({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [liveblogId, supabase]);
+  }, [liveblogId, supabase, ensureCountMap, reactionOptions]);
 
   const sorted = useMemo(() => {
     return [...updates].sort((a, b) => {
@@ -552,7 +635,14 @@ export default function EmbedClient({
               isNew &&
                 "will-change-transform animate-[lb-slide-fade-in_460ms_cubic-bezier(0.22,1,0.36,1)_both]"
             )}
-            style={!u.pinned ? { borderColor: accentSoft } : undefined}
+            style={
+              !u.pinned
+                ? {
+                    borderColor: accentSoft,
+                    ...updateSurfaceStyle,
+                  }
+                : undefined
+            }
           >
             <div
               className="pointer-events-none absolute inset-0 opacity-80 transition-opacity duration-500 group-hover:opacity-100"
@@ -613,8 +703,9 @@ export default function EmbedClient({
                 liveblogId={liveblogId}
                 updateId={u.id}
                 deviceId={deviceId}
-                counts={reactionCounts[u.id] || { smile: 0, heart: 0, thumbs_up: 0 }}
-                active={reactionActive[u.id] || { smile: false, heart: false, thumbs_up: false }}
+                reactions={reactionOptions}
+                counts={ensureCountMap(reactionCounts[u.id])}
+                active={ensureActiveMap(reactionActive[u.id])}
                 onChange={(nextCounts, nextActive) => {
                   setReactionCounts((prev) => ({ ...prev, [u.id]: nextCounts }));
                   setReactionActive((prev) => ({ ...prev, [u.id]: nextActive }));
@@ -754,6 +845,7 @@ function ReactionBar({
   liveblogId,
   updateId,
   deviceId,
+  reactions,
   counts,
   active,
   onChange,
@@ -762,62 +854,65 @@ function ReactionBar({
   liveblogId: string;
   updateId: string;
   deviceId: string;
-  counts: { smile: number; heart: number; thumbs_up: number };
-  active: { smile: boolean; heart: boolean; thumbs_up: boolean };
-  onChange: (
-    nextCounts: { smile: number; heart: number; thumbs_up: number },
-    nextActive: { smile: boolean; heart: boolean; thumbs_up: boolean }
-  ) => void;
+  reactions: ReactionOption[];
+  counts: Record<string, number>;
+  active: Record<string, boolean>;
+  onChange: (nextCounts: Record<string, number>, nextActive: Record<string, boolean>) => void;
   onTrack?: (event: string, metadata?: Record<string, unknown>) => void;
 }) {
-  async function toggle(type: ReactionType) {
+  const enabledReactions = reactions.filter((reaction) => reaction.id).slice(0, 4);
+  if (!enabledReactions.length) return null;
+
+  async function toggle(reactionId: string) {
     if (!deviceId) return;
-    const currentlyActive = active[type];
-    const optimisticCounts = { ...counts, [type]: Math.max(0, counts[type] + (currentlyActive ? -1 : 1)) } as typeof counts;
-    const optimisticActive = { ...active, [type]: !currentlyActive } as typeof active;
+    const currentlyActive = Boolean(active[reactionId]);
+    const optimisticCounts = {
+      ...counts,
+      [reactionId]: Math.max(0, (counts[reactionId] ?? 0) + (currentlyActive ? -1 : 1)),
+    };
+    const optimisticActive = { ...active, [reactionId]: !currentlyActive };
     onChange(optimisticCounts, optimisticActive);
     let tracked = false;
     try {
       const res = await fetch(`/api/embed/${liveblogId}/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updateId, type, deviceId }),
+        body: JSON.stringify({ updateId, type: reactionId, deviceId }),
       });
-       if (res.ok) tracked = true;
+      if (res.ok) tracked = true;
       const json = await res.json().catch(() => null);
       if (json && json.counts && json.active) {
-        onChange(json.counts, json.active);
+        const serverCounts = json.counts as Record<string, number>;
+        const serverActive = json.active as Record<string, boolean>;
+        const hydratedCounts: Record<string, number> = {};
+        const hydratedActive: Record<string, boolean> = {};
+        enabledReactions.forEach((reaction) => {
+          hydratedCounts[reaction.id] = serverCounts?.[reaction.id] ?? 0;
+          hydratedActive[reaction.id] = Boolean(serverActive?.[reaction.id]);
+        });
+        onChange(hydratedCounts, hydratedActive);
       }
     } catch {}
     if (tracked) {
       const analyticsEvent = currentlyActive ? "reaction_removed" : "reaction_added";
-      onTrack?.(analyticsEvent, { updateId, type });
+      onTrack?.(analyticsEvent, { updateId, type: reactionId });
     }
   }
 
   return (
     <div className="mt-1.5 flex items-center gap-2 text-xs">
-      <ReactionButton
-        label="Smile"
-        emoji="😊"
-        count={counts.smile}
-        active={active.smile}
-        onClick={() => toggle("smile")}
-      />
-      <ReactionButton
-        label="Heart"
-        emoji="❤️"
-        count={counts.heart}
-        active={active.heart}
-        onClick={() => toggle("heart")}
-      />
-      <ReactionButton
-        label="Thumbs up"
-        emoji="👍"
-        count={counts.thumbs_up}
-        active={active.thumbs_up}
-        onClick={() => toggle("thumbs_up")}
-      />
+      {enabledReactions.map((reaction) => (
+        <ReactionButton
+          key={reaction.id}
+          label={reaction.label}
+          emoji={reaction.type === "emoji" ? reaction.emoji ?? "😀" : undefined}
+          imageUrl={reaction.type === "image" ? reaction.imageUrl ?? undefined : undefined}
+          alt={reaction.alt || reaction.label}
+          count={counts[reaction.id] ?? 0}
+          active={Boolean(active[reaction.id])}
+          onClick={() => toggle(reaction.id)}
+        />
+      ))}
     </div>
   );
 }
@@ -825,12 +920,16 @@ function ReactionBar({
 function ReactionButton({
   label,
   emoji,
+  imageUrl,
+  alt,
   count,
   active,
   onClick,
 }: {
   label: string;
-  emoji: string;
+  emoji?: string;
+  imageUrl?: string;
+  alt?: string;
   count: number;
   active: boolean;
   onClick: () => void;
@@ -841,11 +940,21 @@ function ReactionButton({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-1",
-        active ? "border-emerald-500/70 bg-emerald-500/10 text-emerald-300" : "border-border/60 bg-background/60 text-muted-foreground hover:border-border/40"
+        "inline-flex items-center gap-1 rounded-full border px-2 py-1 transition",
+        active
+          ? "bg-[var(--lb-accent-soft,rgba(59,130,246,0.2))] text-[var(--lb-accent,#22d3ee)]"
+          : "border-border/60 bg-background/60 text-muted-foreground hover:border-border/40"
       )}
+      style={active ? { borderColor: "var(--lb-accent,rgba(59,130,246,0.8))" } : undefined}
     >
-      <span className="text-sm leading-none">{emoji}</span>
+      <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-background/60">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt={alt ?? label} className="h-full w-full object-contain" />
+        ) : (
+          <span className="text-sm leading-none">{emoji ?? "😀"}</span>
+        )}
+      </span>
       <span className="min-w-[1ch] tabular-nums">{count}</span>
     </button>
   );

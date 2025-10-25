@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { UpgradeHighlights } from "@/components/ui/upgrade-highlights";
+import { createClient } from "@/lib/supabase/browserClient";
 
 type Match = {
   id: number;
@@ -51,6 +52,8 @@ export default function MatchesPage() {
   const [limitMessage, setLimitMessage] = useState(
     "You've hit the free plan ceiling. Pro unlocks unlimited coverage, richer sponsor tooling, and exports your editors will love.",
   );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const supabase = useMemo(() => createClient(), []);
 
   const qs = useMemo(() => {
     const params = new URLSearchParams();
@@ -63,6 +66,10 @@ export default function MatchesPage() {
   }, [country, leagueId, status, from, to]);
 
   async function fetchMatches() {
+    if (!isAuthenticated) {
+      setData([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -78,9 +85,68 @@ export default function MatchesPage() {
   }
 
   useEffect(() => {
-    fetchMatches();
+    let active = true;
+
+    async function hydrateAuth() {
+      const { data } = await supabase.auth.getUser();
+      if (!active) return;
+      setIsAuthenticated(Boolean(data.user));
+    }
+
+    hydrateAuth();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setIsAuthenticated(Boolean(session?.user));
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMatches();
+    } else if (isAuthenticated === false) {
+      setData([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthenticated]);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center text-sm text-muted-foreground">
+        Checking your account…
+      </div>
+    );
+  }
+
+  if (isAuthenticated === false) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 p-6 text-center">
+        <div className="space-y-3">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Sign in to explore fixtures
+          </h1>
+          <p className="max-w-xl text-base text-muted-foreground">
+            Browse leagues, pin matches to your dashboard, and spin up liveblogs in one click. Log in or create a
+            free account to get started.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button asChild size="lg" className="px-8">
+            <Link href="/signin">Sign in</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="px-8">
+            <Link href="/signup">Create account</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
